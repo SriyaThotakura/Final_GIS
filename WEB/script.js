@@ -21,7 +21,24 @@ document.body.appendChild(loadingEl);
 
 // Wait for the map to load
 map.on('load', () => {
-    console.log("Map has loaded! Adding data layers...");
+    console.log("Map has loaded! Configuring map...");
+
+    // Set up map lighting
+    map.setLight({
+        // Directional Light (creates strong shadows)
+        'anchor': 'viewport', // Light direction remains fixed relative to the screen
+        'color': '#FFFFFF',
+        'intensity': 0.6, // Overall brightness
+        'position': [135, 60, 0] // Direction: [azimuth (0=N, 90=E), pitch (0=flat, 90=overhead), range]
+    }, 
+    // Ambient Light (subtle fill light for all surfaces)
+    {
+        'anchor': 'viewport',
+        'color': '#AAAAAA', // Light gray ambient color
+        'intensity': 0.4
+    });
+
+    console.log("Map lighting configured. Adding data layers...");
 
     // 1. Add park_lots (Green spaces)
     map.addSource('park-lots-source', { 
@@ -234,7 +251,7 @@ map.on('load', () => {
             'circle-color': [
                 'match',
                 ['get', 'f_type'],
-                'Hospital', '#ff1100ff',      // Red for hospitals
+                'Hospital', '#ff1100',      // Red for hospitals
                 'School', '#333333',       // Blue for schools  
                 'Day Care', '#404040',      // Green for daycare
                 '#FFFFFF'                  // Default white for other types
@@ -244,7 +261,7 @@ map.on('load', () => {
             'circle-opacity': 1,
             'circle-blur': 1
         }
-    }, 'junction-hotspots-layer');
+    }, 'traffic-hotspots-layer');
 
     // 6. Add Residential Areas
     map.addSource('residential-source', {
@@ -261,11 +278,101 @@ map.on('load', () => {
             'fill-opacity': 0.0001,
             'fill-outline-color': 'transparent'
         }
-    }, 'vulnerable-facilities-layer');
+    }, 'traffic-hotspots-layer');
+
+    // 7. Add CVI 3D Extrusion Layer with data filtering
+fetch('../data/CVI_hex.geojson')
+    .then(response => response.json())
+    .then(data => {
+        // Process features to ensure CVI_mean is a valid number
+        const processedData = {
+            ...data,
+            features: data.features.map(feature => ({
+                ...feature,
+                properties: {
+                    ...feature.properties,
+                    // Ensure CVI_mean is a valid number, default to 0 if not
+                    CVI_mean: feature.properties.CVI_mean !== null && 
+                            !isNaN(parseFloat(feature.properties.CVI_mean)) ?
+                            parseFloat(feature.properties.CVI_mean) : 0
+                }
+            }))
+        };
+
+        // Add the source with processed data
+        map.addSource('cvi-source', {
+            type: 'geojson',
+            data: processedData
+        });
+
+        // Add the layer after data is processed
+        map.addLayer({
+            'id': 'cvi-3d-extrusion',
+            'type': 'fill-extrusion',
+            'source': 'cvi-source',
+            'paint': {
+                // A. EXTRUSION HEIGHT: Base the height on the CVI mean score
+                'fill-extrusion-height': [
+                    'interpolate', 
+                    ['exponential', 2.5], // More aggressive exponential curve
+                    ['get', 'CVI_mean'], 
+                    -1.0, 100,       // Higher base for better visibility
+                    0.0, 100,        // Flat base up to 0
+                    0.1, 300,        // Early rise
+                    0.3, 1000,       // Steeper mid-range
+                    0.6, 2000,       // Sharp increase
+                    1.0, 4000,       // Very high for upper range
+                    2.0, 5000        // Maximum dramatic height (5000m)
+                ],
+                // B. EXTRUSION COLOR: Use the specified red gradient (#8B0000 to #E10600)
+                'fill-extrusion-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['get', 'CVI_mean'],
+                    -1.0, '#8B0000',  // Dark Red (low/negative CVI)
+                    0, '#8B0000',     // Dark Red for 0
+                    2.0, '#E10600'    // Alarm Red (high CVI)
+                ],
+                'fill-extrusion-opacity': 0.9 // High opacity for 3D
+            },
+            'layout': {
+                'visibility': 'none' // Hidden until Scrollama reveals it
+            }
+        }, 'traffic-hotspots-layer');
+
+        console.log('CVI 3D layer added with processed data');
+    })
+    .catch(error => {
+        console.error('Error loading CVI data:', error);
+    });
 
     // Add map controls
     map.addControl(new mapboxgl.NavigationControl(), 'top-left');
     map.addControl(new mapboxgl.ScaleControl());
+
+// Add 3D buildings layer - Place above base map layers
+map.addLayer({
+    'id': '3d-buildings',
+    'source': 'composite',
+    'source-layer': 'building',
+    'filter': ['==', 'extrude', 'true'],
+    'type': 'fill-extrusion',
+    'minzoom': 15,
+    'paint': {
+        'fill-extrusion-color': '#1E1E1E',
+        'fill-extrusion-height': [
+            "interpolate", ["linear"], ["zoom"],
+            15, 0,
+            15.05, ["get", "height"]
+        ],
+        'fill-extrusion-base': [
+            "interpolate", ["linear"], ["zoom"],
+            15, 0,
+            15.05, ["get", "min_height"]
+        ],
+        'fill-extrusion-opacity': 0.8
+    }
+});  // Removed the 'water-layer-id' reference
     
     // Create popup for hexagonal layer interactivity
     const popup = new mapboxgl.Popup({
@@ -380,7 +487,8 @@ const storySteps = {
             ['traffic-hotspots-layer', 'visible', 0.8], // Traffic Hotspots (Heatmap)
             ['junction-hotspots-layer', 'visible', 0.8], // Idling Hotspots (Heatmap)
             ['vulnerable-facilities-layer', 'visible', 1.0], // Facilities (White Dots)
-            ['residential-layer', 'none', 0] // Residential Areas (Hidden)
+            ['residential-layer', 'none', 0], // Residential Areas (Hidden)
+            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
     },
     1: { // Same as 0, serves as the explicit start step for Scroll 1
@@ -395,7 +503,8 @@ const storySteps = {
             ['traffic-hotspots-layer', 'visible', 0.8],
             ['junction-hotspots-layer', 'visible', 0.8],
             ['vulnerable-facilities-layer', 'visible', 1.0],
-            ['residential-layer', 'none', 0]
+            ['residential-layer', 'none', 0],
+            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
     },
     2: { // Traffic Hotspots Focus - Show only traffic hotspots
@@ -410,7 +519,8 @@ const storySteps = {
             ['traffic-hotspots-layer', 'visible', 1.0], // Only Traffic Hotspots visible
             ['junction-hotspots-layer', 'visible', 1.0], // Junction Hotspots also visible
             ['vulnerable-facilities-layer', 'none', 0],
-            ['residential-layer', 'none', 0]
+            ['residential-layer', 'none', 0],
+            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
     },
     3: { // Scroll 1 Focus - Zoom to Bronx to show local problem
@@ -425,7 +535,8 @@ const storySteps = {
             ['traffic-hotspots-layer', 'visible', 0.8],
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'visible', 1.0],
-            ['residential-layer', 'visible', 0.6] // Show residential areas
+            ['residential-layer', 'visible', 0.6], // Show residential areas
+            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
     },
     4: { // Freight Routes Only - Show only freight routes and zones
@@ -440,6 +551,8 @@ const storySteps = {
             ['traffic-hotspots-layer', 'none', 0],
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'none', 0],
+            ['residential-layer', 'none', 0],
+            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
     },
     5: { // Freight Focus - Show freight zones, routes, and asthma hex
@@ -454,6 +567,8 @@ const storySteps = {
             ['traffic-hotspots-layer', 'none', 0],
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'none', 0],
+            ['residential-layer', 'none', 0],
+            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
     },
     6: { // Health Burden Focus - Isolate Health Burden layers, fade Freight/Hotspots
@@ -468,22 +583,28 @@ const storySteps = {
             ['traffic-hotspots-layer', 'none', 0],
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'visible', 0.6], // Facilities visible but faded
+            ['residential-layer', 'none', 0],
+            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
     },
-    7: { // Conclusion - Show all layers with balanced opacity for comprehensive view
-        center: [-74.0060, 40.7128], // Center on NYC for city-wide perspective
-        zoom: 9, // Zoom out to show full NYC view
+    7: { // CVI 3D Extrusion - Show CVI 3D layer with dramatic perspective
+        center: [-73.88, 40.85], // Center on South Bronx for high CVI areas
+        zoom: 12,
+        pitch: 45, // Add 3D perspective
+        bearing: 0,
         layers: [
-            ['park-lots-layer', 'visible', 1.0], // Parks visible
-            ['asthma-index-layer', 'visible', 0.6], // Asthma visible but not overwhelming
-            ['asthma-hex-fill', 'visible', 0.4], // Astma Hex faded
-            ['freight-routes-layer', 'visible', 0.6], // Freight routes visible
-            ['freight-zones-layer', 'visible', 0.6], // Freight zones visible
-            ['traffic-hotspots-layer', 'visible', 0.3], // Traffic hotspots faintly visible
-            ['junction-hotspots-layer', 'visible', 0.3], // Junction hotspots faintly visible
-            ['vulnerable-facilities-layer', 'visible', 0.8], // Facilities prominent
+            ['park-lots-layer', 'visible', 0.3], // Parks faded
+            ['asthma-index-layer', 'none', 0], // Hide other layers
+            ['asthma-hex-fill', 'none', 0],
+            ['freight-routes-layer', 'visible', 0.2], // Freight very faded
+            ['freight-zones-layer', 'none', 0],
+            ['traffic-hotspots-layer', 'none', 0],
+            ['junction-hotspots-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'visible', 0.4], // Facilities visible but faded
+            ['residential-layer', 'visible', 0.1], // Residential very faded
+            ['cvi-3d-extrusion', 'visible', 0.9] // CVI 3D prominent
         ]
-    }
+    },
 };
 
 // Initialize scrollytelling
@@ -503,6 +624,80 @@ function initScrollytelling() {
             throw new Error('No .step elements found in the document');
         }
 
+        // Scrollama event handlers
+        function handleStepEnter(response) {
+            // Hide previous layers when scrolling to a new one
+            if (map.getLayer('asthma-hex-fill')) {
+                map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
+            }
+            if (map.getLayer('cvi-3d-extrusion')) {
+                map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
+            }
+
+            console.log('Entering step:', response.index, response.element.id);
+            const stepIndex = response.element.getAttribute('data-step');
+            
+            if (!stepIndex) {
+                console.warn('Step element missing data-step attribute:', response.element);
+                return;
+            }
+            
+            // Update active step styling
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('is-active'));
+            response.element.classList.add('is-active');
+
+            if (response.element.id === 'scroll-5-cvi-step') { 
+                // 1. Reveal the 3D extrusion layer
+                if (map.getLayer('cvi-3d-extrusion')) {
+                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
+                    map.setPaintProperty('cvi-3d-extrusion', 'fill-extrusion-opacity', 0.9);
+                }
+                
+                // 2. Set the 3D View (Camera Pitch and Bearing)
+                map.flyTo({
+                    center: [-73.95, 40.78], // Focus over central NYC
+                    pitch: 80,                // Near-vertical view (almost straight down)
+                    bearing: -45,             // Diagonal angle for better depth perception
+                    zoom: 10.5,
+                    duration: 2500,           // Slightly longer for dramatic effect
+                    curve: 1.2,               // More pronounced curve in flight path
+                    essential: true
+                });
+            } else if (response.element.id === 'step-7') {
+                // CVI 3D Extrusion step - show CVI 3D layer prominently with 3D perspective
+                console.log('Showing CVI 3D extrusion layer');
+                if (map.getLayer('cvi-3d-extrusion')) {
+                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
+                    map.setPaintProperty('cvi-3d-extrusion', 'fill-extrusion-opacity', 0.9);
+                }
+                // Set 3D perspective for dramatic effect
+                map.flyTo({
+                    center: [-73.88, 40.85],
+                    zoom: 12,
+                    pitch: 45,
+                    bearing: 0,
+                    duration: 1500 
+                });
+            } else if (response.element.id === 'step-5') {
+                // Freight Focus step - show hexagonal asthma layer prominently
+                console.log('Showing asthma hexagonal layer for Freight Focus step');
+                if (map.getLayer('asthma-hex-fill')) {
+                    map.setLayoutProperty('asthma-hex-fill', 'visibility', 'visible');
+                    map.setPaintProperty('asthma-hex-fill', 'fill-opacity', 0.8);
+                }
+            } else if (response.element.id === 'step-6') {
+                // Health Burden step - show hexagonal layer with medium opacity
+                console.log('Showing asthma hexagonal layer for Health Burden step');
+                if (map.getLayer('asthma-hex-fill')) {
+                    map.setLayoutProperty('asthma-hex-fill', 'visibility', 'visible');
+                    map.setPaintProperty('asthma-hex-fill', 'fill-opacity', 0.6);
+                }
+            }
+            
+            // Update map state
+            updateMap(stepIndex);
+        }
+
         const scroller = scrollama();
         
         scroller
@@ -513,69 +708,7 @@ function initScrollytelling() {
                 debug: true, // Enable debug for now
                 once: false
             })
-            .onStepEnter(response => {
-                console.log('Entering step:', response.index, response.element.id);
-                const stepIndex = response.element.getAttribute('data-step');
-                
-                if (!stepIndex) {
-                    console.warn('Step element missing data-step attribute:', response.element);
-                    return;
-                }
-                
-                // Update active step styling
-                document.querySelectorAll('.step').forEach(el => el.classList.remove('is-active'));
-                response.element.classList.add('is-active');
-                
-                // Example Scrollama step logic for asthma hexagonal layer
-                if (response.element.id === 'asthma-hotspots-step') {
-                    // 1. Ensure any old layers (like the original UHF polygons) are hidden
-                    if (map.getLayer('old-asthma-layer-id')) {
-                        map.setLayoutProperty('old-asthma-layer-id', 'visibility', 'none');
-                    }
-
-                    // 2. Reveal the new hexagonal layer
-                    if (map.getLayer('asthma-hex-fill')) {
-                        map.setLayoutProperty('asthma-hex-fill', 'visibility', 'visible');
-                        map.setPaintProperty('asthma-hex-fill', 'fill-opacity', 0.8);
-                    }
-
-                    // 3. Set the map view for the asthma visualization
-                    map.flyTo({
-                        center: [-74.00, 40.73], // A central point over NYC
-                        zoom: 10.5,
-                        duration: 1500 
-                    });
-                } else if (response.element.id === 'step-5') {
-                    // Freight Focus step - show hexagonal asthma layer prominently
-                    console.log('Showing asthma hexagonal layer for Freight Focus step');
-                    if (map.getLayer('asthma-hex-fill')) {
-                        map.setLayoutProperty('asthma-hex-fill', 'visibility', 'visible');
-                        map.setPaintProperty('asthma-hex-fill', 'fill-opacity', 0.8);
-                    }
-                } else if (response.element.id === 'step-6') {
-                    // Health Burden step - show hexagonal layer with medium opacity
-                    console.log('Showing asthma hexagonal layer for Health Burden step');
-                    if (map.getLayer('asthma-hex-fill')) {
-                        map.setLayoutProperty('asthma-hex-fill', 'visibility', 'visible');
-                        map.setPaintProperty('asthma-hex-fill', 'fill-opacity', 0.6);
-                    }
-                } else if (response.element.id === 'step-7') {
-                    // Conclusion step - show faded hexagonal layer
-                    console.log('Showing faded asthma hexagonal layer for Conclusion');
-                    if (map.getLayer('asthma-hex-fill')) {
-                        map.setLayoutProperty('asthma-hex-fill', 'visibility', 'visible');
-                        map.setPaintProperty('asthma-hex-fill', 'fill-opacity', 0.4);
-                    }
-                } else {
-                    // Hide hexagonal layer for other steps
-                    if (map.getLayer('asthma-hex-fill')) {
-                        map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
-                    }
-                }
-                
-                // Update map state
-                updateMap(stepIndex);
-            })
+            .onStepEnter(handleStepEnter)
             .onStepExit(response => {
                 console.log('Exiting step:', response.index);
             });
@@ -644,7 +777,8 @@ function updateMap(stepIndex) {
                     'fill': 'fill-opacity',
                     'line': 'line-opacity',
                     'circle': 'circle-opacity',
-                    'heatmap': 'heatmap-opacity'
+                    'heatmap': 'heatmap-opacity',
+                    'fill-extrusion': 'fill-extrusion-opacity'
                 }[layerType];
 
                 if (opacityProp) {

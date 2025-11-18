@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>NYC Idling Atlas: The Regulatory Problem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
+    <link href="WEB/style.css" rel="stylesheet" /> 
+</head>
+
+<body>
+    <div id="story-container"> 
+        <div id="map"></div> 
+        <div id="features">
+            <section class="step" id="step-0" data-step="0">
+                <div class="narrative">
+                    <h1>NYC Idling Atlas: The Regulatory Problem</h1>
+                    <p>Welcome to the first chapter. Scroll down to explore the nexus of freight traffic, idling hotspots, and environmental justice across New York City.</p>
+                </div>
+                <div class="legend" id="legend-0">
+                    <h4>Map Legend</h4>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #8B0000;"></div>
+                        <div class="legend-label">High Risk Areas</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="step-1" data-step="1">
+                <div class="narrative">
+                    <h2>Chapter 1: Full Problem Layers</h2>
+                    <p><strong>Problem:</strong> Establishes the city-wide extent of air quality risk and exposure.</p>
+                    <p><strong>Description:</strong> This is an initial composite view showing all problem layers overlaid: major <strong>Freight Routes</strong> , <strong>Junction Hotspots</strong>, high <strong>Asthma Index Rates</strong>, and <strong>Vulnerable Facilities</strong>.</p>
+                </div>
+                <div class="legend" id="legend-1">
+                    <h4>Map Legend</h4>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #8B0000;"></div>
+                        <div class="legend-label">Asthma Index</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFA500;"></div>
+                        <div class="legend-label">Freight Routes</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF0000;"></div>
+                        <div class="legend-label">Idling Hotspots</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="step-2" data-step="2">
+                <div class="narrative">
+                    <h2>Focus: South Bronx Density</h2>
+                    <p><strong>Problem:</strong> Reveals acute exposure where <strong>Vulnerable Facilities</strong> (schools, hospitals) are directly adjacent to high-traffic and high-density idling areas.</p>
+                    <p><strong>Description:</strong> Zooms in on the South Bronx to highlight the clear, high density of idling and the acute spatial relationship between traffic and sensitive sites.</p>
+                </div>
+                <div class="legend" id="legend-2">
+                    <h4>Map Legend</h4>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #8B0000;"></div>
+                        <div class="legend-label">Asthma Index</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFA500;"></div>
+                        <div class="legend-label">Freight Routes</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="step-3" data-step="3">
+                <div class="narrative">
+                    <h2>Health Burden: Vulnerable Communities</h2>
+                    <p><strong>Problem:</strong> The overlap between pollution hotspots and <strong>Vulnerable Facilities</strong> (schools, healthcare centers) reveals environmental injustice, as those most sensitive to air impacts are in the areas of highest exposure.</p>
+                    <p><strong>Description:</strong> Shifts focus to the <strong>Vulnerable Facilities</strong> surrounded by pollution, making a direct argument about spatial injustice.</p>
+                </div>
+                <div class="legend" id="legend-3">
+                    <h4>Map Legend</h4>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF0000;"></div>
+                        <div class="legend-label">Idling Hotspots</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #0000FF;"></div>
+                        <div class="legend-label">Vulnerable Facilities</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="step-4" data-step="4">
+                <div class="narrative">
+                    <h2>Freight Routes & Idling</h2>
+                    <p><strong>Problem:</strong> The concentration of <strong>Freight Routes</strong> through residential areas creates persistent idling and pollution exposure.</p>
+                    <p><strong>Description:</strong> Highlights the role of freight movement in creating pollution hotspots, particularly around distribution centers and major corridors.</p>
+                </div>
+                <div class="legend" id="legend-4">
+                    <h4>Map Legend</h4>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFA500;"></div>
+                        <div class="legend-label">Freight Routes</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF0000;"></div>
+                        <div class="legend-label">Idling Hotspots</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="step-5" data-step="5">
+                <div class="narrative">
+                    <h2>Asthma Hotspots</h2>
+                    <p><strong>Problem:</strong> The correlation between <strong>Asthma Index Rates</strong> and idling hotspots suggests a direct health impact from vehicle emissions.</p>
+                    <p><strong>Description:</strong> Overlays asthma data with idling zones, emphasizing the health consequences of unregulated idling.</p>
+                </div>
+                <div class="legend" id="legend-5">
+                    <h4>Map Legend</h4>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #8B0000;"></div>
+                        <div class="legend-label">Asthma Index</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF0000;"></div>
+                        <div class="legend-label">Idling Hotspots</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="step-6" data-step="6">
+                <div class="narrative">
+                    <h2>Conclusion: Data-Driven Regulation</h2>
+                    <p><strong>Conclusion:</strong> The data confirms the need for a more targeted approach to enforce idling laws and protect vulnerable populations in these specific hotspots.</p>
+                    <p><strong>Description:</strong> Serves as a call to action, concluding that the visual evidence necessitates data-driven regulatory change.</p>
+                </div>
+                <div class="legend" id="legend-6">
+                    <h4>Map Legend</h4>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #8B0000;"></div>
+                        <div class="legend-label">High Risk Areas</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFA500;"></div>
+                        <div class="legend-label">Freight Routes</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF0000;"></div>
+                        <div class="legend-label">Idling Hotspots</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Load Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+    <!-- Load Scrollama -->
+    <script src="WEB/lib/scrollama.min.js"></script>
+    <!-- Load our script last -->
+    <script src="WEB/script.js"></script>
+</body>
+</html>

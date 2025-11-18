@@ -281,7 +281,8 @@ map.on('load', () => {
     }, 'traffic-hotspots-layer');
 
     // 7. Add CVI 3D Extrusion Layer with data filtering
-fetch('../data/CVI_hex.geojson')
+    // Using absolute path from repository root for GitHub Pages
+    fetch('/data/CVI_hex.geojson')
     .then(response => response.json())
     .then(data => {
         // Process features to ensure CVI_mean is a valid number

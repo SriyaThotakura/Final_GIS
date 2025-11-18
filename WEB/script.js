@@ -43,7 +43,7 @@ map.on('load', () => {
     // 1. Add park_lots (Green spaces)
     map.addSource('park-lots-source', { 
         type: 'geojson', 
-        data: '../data/park_lots.geojson'
+        data: 'data/park_lots.geojson'
     });
     
     map.addLayer({
@@ -60,7 +60,7 @@ map.on('load', () => {
     // 2.1. Add Asthma Index Rates
     map.addSource('asthma-index-source', { 
         type: 'geojson', 
-        data: '../data/Asthma_Index_Rates.geojson' 
+        data: 'data/Asthma_Index_Rates.geojson' 
     });
     
     map.addLayer({
@@ -90,7 +90,7 @@ map.on('load', () => {
     // 3. Add Freight Routes
     map.addSource('freight-routes-source', {
         type: 'geojson',
-        data: '../data/Freight_Routes.geojson'
+        data: 'data/Freight_Routes.geojson'
     });
 
     map.addLayer({
@@ -111,7 +111,7 @@ map.on('load', () => {
     // 3.1. Add Asthma Hexagonal Data
     map.addSource('asthma-hex-source', {
         type: 'geojson',
-        data: '../data/Asthma_Hotspots_Hexagons.geojson' 
+        data: 'data/Asthma_Hotspots_Hexagons.geojson' 
     });
 
     map.addLayer({
@@ -140,7 +140,7 @@ map.on('load', () => {
     // 3.5. Add Freight Zones
     map.addSource('freight-zones-source', {
         type: 'geojson',
-        data: '../data/zones_fr.geojson'
+        data: 'data/zones_fr.geojson'
     });
 
     map.addLayer({
@@ -162,7 +162,7 @@ map.on('load', () => {
     // 3.5. Add Traffic Hotspots
     map.addSource('traffic-hotspots-source', {
         type: 'geojson',
-        data: '../data/Traffic_Hotspots.geojson'
+        data: 'data/Traffic_Hotspots.geojson'
     });
 
     map.addLayer({
@@ -199,7 +199,7 @@ map.on('load', () => {
     // 4. Add Junction Hotspots
     map.addSource('junction-hotspots-source', {
         type: 'geojson',
-        data: '../data/Junction_hotspots.geojson'  // Note: Case-sensitive filename
+        data: 'data/Junction_hotspots.geojson'  // Note: Case-sensitive filename
     });
 
     map.addLayer({
@@ -239,7 +239,7 @@ map.on('load', () => {
     // 5. Add Vulnerable Facilities
     map.addSource('vulnerable-facilities-source', {
         type: 'geojson',
-        data: '../data/Vulnerability_facilities.geojson'  // Updated filename
+        data: 'data/Vulnerability_facilities.geojson'  // Updated filename
     });
 
     map.addLayer({
@@ -266,7 +266,7 @@ map.on('load', () => {
     // 6. Add Residential Areas
     map.addSource('residential-source', {
         type: 'geojson',
-        data: '../data/residential.geojson'
+        data: 'data/residential.geojson'
     });
 
     map.addLayer({
@@ -281,8 +281,7 @@ map.on('load', () => {
     }, 'traffic-hotspots-layer');
 
     // 7. Add CVI 3D Extrusion Layer with data filtering
-    // Using absolute path from repository root for GitHub Pages
-    fetch('/data/CVI_hex.geojson')
+fetch('data/CVI_hex.geojson')
     .then(response => response.json())
     .then(data => {
         // Process features to ensure CVI_mean is a valid number

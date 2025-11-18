@@ -1,0 +1,450 @@
+
+// Replace 'YOUR_MAPBOX_ACCESS_TOKEN' with the token you copied from mapbox.com
+mapboxgl.accessToken = 'pk.eyJ1Ijoic3JpeWF0aG90YWt1cmEiLCJhIjoiY21kYzhuMG1hMTVrbjJpcHpnZ3Awdjc1dCJ9.bEGwdPmOH5kVaT9RWduC5Q';
+
+// Step 2: Initialize the map
+const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/dark-v11',
+    center: [-74.0060, 40.7128],
+    zoom: 9,
+    pitch: 0,
+    bearing: 0,
+    hash: false,
+    interactive: true
+});
+
+
+// Wait for the map to load
+map.on('load', () => {
+    console.log("Map has loaded! Adding data layers...");
+
+    // Show loading state
+    const loadingEl = document.createElement('div');
+    loadingEl.className = 'map-loading';
+    loadingEl.textContent = 'Loading map data...';
+    document.body.appendChild(loadingEl);
+
+    // --- 1. BASE LAYERS (FILLS - Drawn first/lowest) ---
+    
+    // 1. Add park_lots (Green spaces)
+    map.addSource('park-lots-source', { 
+        type: 'geojson', 
+        data: '../data/park_lots.geojson'  // Updated path
+    });
+    map.addLayer({
+        'id': 'park-lots-layer',
+        'type': 'fill',
+        'source': 'park-lots-source',
+        'paint': {
+            'fill-color': '#008000', // Green
+            'fill-opacity': 0.6,
+            'fill-outline-color': '#006400'
+        }
+    });
+
+    // 2. Add Asthma_Index_Rates (Choropleth for UHF polygons - FIX APPLIED)
+    map.addSource('asthma-index-source', { type: 'geojson', data: '../data/Asthma_Index_Rates.geojson' });
+    map.addLayer({
+        'id': 'asthma-index-layer',
+        'type': 'fill',
+        'source': 'asthma-index-source',
+        'paint': {
+            'fill-color': [
+                'interpolate',
+                ['linear'],
+                // FIX: Use 'coalesce' to ensure null values are treated as 0, preventing errors
+                ['coalesce', ['get', 'Asthma_Index_Rate'], 0],
+                0, 'rgba(0,0,0,0)',
+                50, '#FFEDA0',
+                100, '#FED976',
+                150, '#FEB24C',
+                200, '#FD8D3C',
+                250, '#FC4E2A',
+                300, '#E31A1C',
+                350, '#BD0026',
+                400, '#800026'
+            ],
+            'fill-opacity': 0.7,
+            'fill-outline-color': '#333'
+        }
+    }, 'park-lots-layer'); // Draw above parks
+
+    // --- 2. LINE LAYERS ---
+
+    // 3. Add Freight_Routes (NYC-wide lines)
+    map.addSource('freight-routes-source', { type: 'geojson', data: '../data/Freight_Routes.geojson' });
+    map.addLayer({
+        'id': 'freight-routes-layer',
+        'type': 'line',
+        'source': 'freight-routes-source',
+        'layout': { // <--- MOVED TO LAYOUT
+            'line-cap': 'round',
+            'line-join': 'round',
+            'visibility': 'visible' // Ensure initial visibility is set here or in storySteps
+        },
+        'paint': {
+            'line-color': '#E10600', // Alarm Red
+            'line-width': 1.5
+        }
+    }, 'asthma-index-layer'); // Draw above asthma layer
+
+    // 4. Add Bronx-specific urban_fabric (Street detail)
+    map.addSource('bronx-fabric-source', { type: 'geojson', data: '../data/Bronx_fabric.geojson' });
+    map.addLayer({
+        'id': 'bronx-fabric-layer',
+        'type': 'line',
+        'source': 'bronx-fabric-source',
+        'paint': { 'line-color': '#FFFFFF', 'line-width': 0.2 },
+        'layout': { 'visibility': 'none' } // Hidden by default
+    }, 'freight-routes-layer'); // Draw above freight routes
+
+    // --- 3. POINT/HEATMAP LAYERS (TOP) ---
+
+    // 5. Add Vulnerable_facilities (Points - **WAS MISSING**)
+    map.addSource('vulnerable-facilities-source', { type: 'geojson', data: '../data/Vulnerability_facilities.geojson' });
+    map.addLayer({
+        'id': 'vulnerable-facilities-layer',
+        'type': 'circle',
+        'source': 'vulnerable-facilities-source',
+        'paint': {
+            'circle-color': '#FFFFFF',
+            'circle-radius': 1.5,
+            'circle-stroke-width': 0.5,
+            'circle-stroke-color': '#000000'
+        }
+    }, 'bronx-fabric-layer'); // Draw above fabric
+
+    // 6. Add Junction_hotspots (Heatmap/Points)
+    map.addSource('junction-hotspots-source', { type: 'geojson', data: '../data/Junction_hotspots.geojson' });
+    map.addLayer({
+        'id': 'junction-hotspots-layer',
+        'type': 'heatmap',
+        'source': 'junction-hotspots-source',
+        'maxzoom': 15,
+        'paint': {
+            'heatmap-weight': ['interpolate', ['linear'], ['coalesce', ['get', 'Total_Traffic'], 0], 0, 0, 5000, 1], // Added coalesce here too
+            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 9, 20],
+            'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'], 0, 'rgba(0,0,0,0)', 0.2, '#8B0000', 1, '#E10600'],
+            'heatmap-opacity': 0.8
+        }
+    }, 'vulnerable-facilities-layer'); // Draw on top
+
+    // --- 4. START SCROLLYTELLING & CONTROLS ---
+
+    // Add map controls
+    map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+    map.addControl(new mapboxgl.ScaleControl());
+    
+        // Remove loading state
+        if (document.querySelector('.map-loading')) {
+            document.body.removeChild(loadingEl);
+        }
+        
+        // Initialize Scrollama after a short delay to ensure everything is ready
+        setTimeout(() => {
+            initScrollytelling();
+            console.log("Scrollytelling initialized");
+        }, 500);
+    });
+}
+
+
+// =========================================================================
+// SCROLLYTELLING LOGIC (Kept as is, but relies on layers being defined above)
+// =========================================================================
+
+const storySteps = {
+    0: { // Introduction / Initial View
+        center: [-74.0060, 40.7128], 
+        zoom: 9,
+        layers: [
+            ['freight-routes-layer', 'visible', 0.8],
+            ['junction-hotspots-layer', 'visible', 0.8],
+            ['asthma-index-layer', 'visible', 0.7],
+            ['vulnerable-facilities-layer', 'visible', 1.0],
+            ['park-lots-layer', 'visible', 0.5],
+            ['bronx-fabric-layer', 'none', 0] 
+        ]
+    },
+    1: { // Full Problem View
+        center: [-74.0060, 40.7128],
+        zoom: 9,
+        layers: [
+            ['freight-routes-layer', 'visible', 0.8],
+            ['junction-hotspots-layer', 'visible', 0.8],
+            ['asthma-index-layer', 'visible', 0.7],
+            ['vulnerable-facilities-layer', 'visible', 1.0],
+            ['park-lots-layer', 'visible', 0.5],
+            ['bronx-fabric-layer', 'none', 0]
+        ]
+    },
+    2: { // Zoom to Bronx Hotspot
+        center: [-73.88, 40.85],
+        zoom: 12.5,
+        layers: [
+            ['freight-routes-layer', 'visible', 0.8],
+            ['junction-hotspots-layer', 'visible', 0.8],
+            ['asthma-index-layer', 'visible', 0.7],
+            ['vulnerable-facilities-layer', 'visible', 1.0],
+            ['park-lots-layer', 'visible', 0.5],
+            ['bronx-fabric-layer', 'visible', 1.0]
+        ]
+    },
+    3: { // Policy Shift - Isolate Green Space and Hotspots
+        center: [-73.88, 40.85],
+        zoom: 12.5,
+        layers: [
+            ['freight-routes-layer', 'visible', 0.2],
+            ['junction-hotspots-layer', 'visible', 1.0],
+            ['asthma-index-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'none', 0],
+            ['park-lots-layer', 'visible', 0.8],
+            ['bronx-fabric-layer', 'visible', 1.0]
+        ]
+    },
+    4: { // Conclusion
+        center: [-74.0060, 40.7128],
+        zoom: 9,
+        layers: [
+            ['freight-routes-layer', 'visible', 0.2],
+            ['junction-hotspots-layer', 'visible', 0.5],
+            ['asthma-index-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'none', 0],
+            ['park-lots-layer', 'none', 0],
+            ['bronx-fabric-layer', 'none', 0]
+        ]
+    }
+};
+
+// Initialize the map and scrollytelling when the DOM is fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize the map
+        initMap();
+    });
+} else {
+    // DOM is already ready
+    initMap();
+}
+
+// Function to initialize the map and scrollytelling
+function initMap() {
+    // The map initialization code will be moved here
+    map.on('load', () => {
+
+        // 2. Add Asthma_Index_Rates (Choropleth for UHF polygons - FIX APPLIED)
+        map.addSource('asthma-index-source', { type: 'geojson', data: '../data/Asthma_Index_Rates.geojson' });
+        map.addLayer({
+    'id': 'asthma-index-layer',
+    'type': 'fill',
+    'source': 'asthma-index-source',
+    'paint': {
+        'fill-color': [
+            'interpolate',
+            ['linear'],
+            // FIX: Use 'coalesce' to ensure null values are treated as 0, preventing errors
+            ['coalesce', ['get', 'Asthma_Index_Rate'], 0],
+            0, 'rgba(0,0,0,0)',
+            50, '#FFEDA0',
+            100, '#FED976',
+            150, '#FEB24C',
+            200, '#FD8D3C',
+            250, '#FC4E2A',
+            300, '#E31A1C',
+            350, '#BD0026',
+            400, '#800026'
+        ],
+        'fill-opacity': 0.7,
+        'fill-outline-color': '#333'
+    }
+}, 'park-lots-layer'); // Draw above parks
+
+// --- 2. LINE LAYERS ---
+
+// 3. Add Freight_Routes (NYC-wide lines)
+map.addSource('freight-routes-source', { type: 'geojson', data: '../data/Freight_Routes.geojson' });
+map.addLayer({
+    'id': 'freight-routes-layer',
+    'type': 'line',
+    'source': 'freight-routes-source',
+    'layout': { // <--- MOVED TO LAYOUT
+        'line-cap': 'round',
+        'line-join': 'round',
+        'visibility': 'visible' // Ensure initial visibility is set here or in storySteps
+    },
+    'paint': {
+        'line-color': '#E10600', // Alarm Red
+        'line-width': 1.5
+    }
+}, 'asthma-index-layer'); // Draw above asthma layer
+
+// 4. Add Bronx-specific urban_fabric (Street detail)
+map.addSource('bronx-fabric-source', { type: 'geojson', data: '../data/Bronx_fabric.geojson' });
+map.addLayer({
+    'id': 'bronx-fabric-layer',
+    'type': 'line',
+    'source': 'bronx-fabric-source',
+    'paint': { 'line-color': '#FFFFFF', 'line-width': 0.2 },
+    'layout': { 'visibility': 'none' } // Hidden by default
+}, 'freight-routes-layer'); // Draw above freight routes
+
+// --- 3. POINT/HEATMAP LAYERS (TOP) ---
+
+// 5. Add Vulnerable_facilities (Points - **WAS MISSING**)
+map.addSource('vulnerable-facilities-source', { type: 'geojson', data: '../data/Vulnerability_facilities.geojson' });
+map.addLayer({
+    'id': 'vulnerable-facilities-layer',
+    'type': 'circle',
+    'source': 'vulnerable-facilities-source',
+    'paint': {
+        'circle-color': '#FFFFFF',
+        'circle-radius': 1.5,
+        'circle-stroke-width': 0.5,
+        'circle-stroke-color': '#000000'
+    }
+}, 'bronx-fabric-layer'); // Draw above fabric
+
+// 6. Add Junction_hotspots (Heatmap/Points)
+map.addSource('junction-hotspots-source', { type: 'geojson', data: '../data/Junction_hotspots.geojson' });
+map.addLayer({
+    'id': 'junction-hotspots-layer',
+    'type': 'heatmap',
+    'source': 'junction-hotspots-source',
+    'maxzoom': 15,
+    'paint': {
+        'heatmap-weight': ['interpolate', ['linear'], ['coalesce', ['get', 'Total_Traffic'], 0], 0, 0, 5000, 1], // Added coalesce here too
+        'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 9, 20],
+        'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'], 0, 'rgba(0,0,0,0)', 0.2, '#8B0000', 1, '#E10600'],
+        'heatmap-opacity': 0.8
+    }
+}, 'vulnerable-facilities-layer'); // Draw on top
+
+// --- 4. START SCROLLYTELLING & CONTROLS ---
+
+// Add map controls
+map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+map.addControl(new mapboxgl.ScaleControl());
+    
+// Remove loading state
+if (document.querySelector('.map-loading')) {
+    document.body.removeChild(loadingEl);
+}
+    
+// Initialize Scrollama after a short delay to ensure everything is ready
+function initScrollytelling() {
+    // Initialize the scrollytelling when the DOM is fully loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initScrollytelling);
+    } else {
+        // DOM is already ready
+        initScrollytelling();
+    }
+        
+    // Initialize scrollama
+    const scroller = scrollama();
+    
+    // Setup scrollama instance
+    scroller
+        .setup({
+            step: '.step',
+            offset: 0.5, // Trigger when step is 50% in viewport
+            progress: false,
+            debug: false, // Set to true for development
+        })
+        .onStepEnter(response => {
+            console.log('Entering step:', response.index);
+            const stepIndex = response.element.getAttribute('data-step');
+            
+            // Update active step styling
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('is-active'));
+            response.element.classList.add('is-active');
+            
+            // Update map state
+            updateMap(stepIndex);
+        })
+        .onStepExit(response => {
+            // Optional: Handle step exit if needed
+        });
+    
+    // Handle window resize
+    function handleResize() {
+        scroller.resize();
+    }
+    
+    window.addEventListener('resize', handleResize);
+    
+    // Set initial state when DOM is fully loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            updateMap('0');
+            document.querySelector('.step').classList.add('is-active');
+        });
+    } else {
+        updateMap('0');
+        document.querySelector('.step').classList.add('is-active');
+    }
+    
+    // Add resize observer for better performance
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(document.body);
+    
+    // Handle window resize
+    window.addEventListener('resize', handleResize);
+    
+    // Cleanup function (for components that need it)
+    return () => {
+        window.removeEventListener('resize', handleResize);
+        resizeObserver.disconnect();
+    };
+}
+
+
+function updateMap(stepIndex) {
+    const stepData = storySteps[stepIndex];
+    if (!stepData) {
+        console.warn('No step data for index:', stepIndex);
+        return;
+    }
+
+    console.log('Updating to step:', stepIndex, stepData);
+
+    // A. Fly to new camera position (center and zoom)
+    map.flyTo({
+        center: stepData.center,
+        zoom: stepData.zoom,
+        speed: 1.2,
+        curve: 1.42,
+        essential: true
+    });
+
+    // B. Update layer visibility and opacity
+    stepData.layers.forEach(([layerId, visibility, opacity]) => {
+        try {
+            // Skip if layer doesn't exist
+            if (!map.getLayer(layerId)) {
+                console.warn(`Layer not found: ${layerId}`);
+                return;
+            }
+
+            // Update visibility
+            map.setLayoutProperty(layerId, 'visibility', visibility);
+
+            // Update opacity based on layer type
+            const layerType = map.getLayer(layerId).type;
+            const opacityProp = {
+                'fill': 'fill-opacity',
+                'line': 'line-opacity',
+                'circle': 'circle-opacity',
+                'heatmap': 'heatmap-opacity'
+            }[layerType];
+
+            if (opacityProp) {
+                map.setPaintProperty(layerId, opacityProp, opacity);
+            }
+            
+        } catch (error) {
+            console.error(`Error updating layer ${layerId}:`, error);
+        }
+    });
+}

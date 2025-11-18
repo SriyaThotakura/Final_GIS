@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>NYC Idling Atlas: The Regulatory Problem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
+    <link href="style.css" rel="stylesheet" /> 
+</head>
+
+<body>
+    <div id="story-container"> 
+        <div id="map"></div> 
+        <div id="features">
+            <section class="step" id="step-0" data-step="0">
+                <div class="narrative">
+                    <h1>NYC Idling Atlas: The Regulatory Problem</h1>
+                    <p>Welcome to the first chapter. Scroll down to explore the nexus of freight traffic, idling hotspots, and environmental justice across New York City.</p>
+                </div>
+            </section>
+
+            <section class="step" id="step-1" data-step="1">
+                <div class="narrative">
+                    <h2>Chapter 1: Full Problem Layers</h2>
+                    <p><strong>Problem:</strong> Establishes the city-wide extent of air quality risk and exposure.</p>
+                    <p><strong>Description:</strong> This is an initial composite view showing all problem layers overlaid: major <strong>Freight Routes</strong> , <strong>Junction Hotspots</strong>, high <strong>Asthma Index Rates</strong>, and <strong>Vulnerable Facilities</strong>.</p>
+                </div>
+            </section>
+
+            <section class="step" id="step-2" data-step="2">
+                <div class="narrative">
+                    <h2>Focus: South Bronx Density</h2>
+                    <p><strong>Problem:</strong> Reveals acute exposure where <strong>Vulnerable Facilities</strong> (schools, hospitals) are directly adjacent to high-traffic and high-density idling areas.</p>
+                    <p><strong>Description:</strong> Zooms in on the South Bronx to highlight the clear, high density of idling and the acute spatial relationship between traffic and sensitive sites.</p>
+                </div>
+            </section>
+
+            <section class="step" id="step-3" data-step="3">
+                <div class="narrative">
+                    <h2>Health Burden: Vulnerable Communities</h2>
+                    <p><strong>Problem:</strong> The overlap between pollution hotspots and <strong>Vulnerable Facilities</strong> (schools, healthcare centers) reveals environmental injustice, as those most sensitive to air impacts are in the areas of highest exposure.</p>
+                    <p><strong>Description:</strong> Shifts focus to the <strong>Vulnerable Facilities</strong> surrounded by pollution, making a direct argument about spatial injustice.</p>
+                </div>
+            </section>
+            
+            <section class="step" id="step-4" data-step="4">
+                <div class="narrative">
+                    <h2>Freight Focus: Industrial Corridors</h2>
+                    <p><strong>Problem:</strong> Industrial corridors (<strong>Freight Routes</strong>) create disproportionate exposure in nearby residential areas, contributing to the asthma burden.</p>
+                    <p><strong>Description:</strong> Isolates the <strong>Freight Routes</strong> that run through residential areas, emphasizing the industrial infrastructure that impacts community air quality.</p>
+                </div>
+            </section>
+            
+            <section class="step" id="step-5" data-step="5">
+                <div class="narrative">
+                    <h2>Policy: Targeting Green Spaces</h2>
+                    <p><strong>Problem:</strong> Freight and idling zones often overlap with areas lacking sufficient green infrastructure (<strong>Park Lots</strong>), leading to poor air quality filtration in the most affected neighborhoods.</p>
+                    <p><strong>Description:</strong> Isolates <strong>Park Lots</strong> to show the dual burden: high pollution sources combined with a lack of natural cooling and filtration amenities.</p>
+                </div>
+            </section>
+            
+            <section class="step" id="step-6" data-step="6">
+                <div class="narrative">
+                    <h2>Conclusion: Data-Driven Regulation</h2>
+                    <p><strong>Conclusion:</strong> The data confirms the need for a more targeted approach to enforce idling laws and protect vulnerable populations in these specific hotspots.</p>
+                    <p><strong>Description:</strong> Serves as a call to action, concluding that the visual evidence necessitates data-driven regulatory change.</p>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Load Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+    <!-- Load Scrollama -->
+    <script src="lib/scrollama.min.js"></script>
+    <!-- Load our script last -->
+    <script src="script.js"></script> 
+</body>
+</html>

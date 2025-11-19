@@ -57,11 +57,99 @@ map.on('load', () => {
         }
     }, 'waterway-label'); // Draw above water labels
 
+    // 2. Add E-designation Polygons
+    map.addSource('E-designation-source', {
+        type: 'geojson',
+        data: 'data/E-Designation.geojson' 
+    });
+
+    // 3. Add Impervious Density Polygons
+    map.addSource('imp-density-source', {
+        type: 'geojson',
+        data: 'data/Imp_Density.geojson' 
+    });
+
+    map.addLayer({
+        'id': 'E-designation',
+        'type': 'line',
+        'source': 'E-designation-source',
+        'paint': {
+            'line-color': '#FFFF00', // Bright Yellow
+            'line-width': 1.5,
+            'line-dasharray': [2, 1] // Creates the dashed line effect
+        },
+        'layout': {
+            'visibility': 'none' // Hidden until called in a scroll step
+        }
+    }, 'waterway-label'); // Draw above water labels
+
+    // 3.1. Add Impervious Density Layer
+    map.addLayer({
+        'id': 'imp-density-layer',
+        'type': 'fill',
+        'source': 'imp-density-source',
+        'paint': {
+            'fill-color': [
+                'interpolate',
+                ['linear'],
+                ['get', 'Imp_Density'],
+                0, '#B8D4E8', // Darker blue for low density
+                25, '#7FA5C7', // Medium blue-grey
+                50, '#4A5F7A', // Dark blue-grey
+                75, '#2C3E50', // Very dark grey
+                100, '#1A252F' // Darkest blue-grey
+            ],
+            'fill-opacity': 0.8,
+            'fill-outline-color': '#333333'
+        },
+        'layout': {
+            'visibility': 'none' // Hidden until called in a scroll step
+        }
+    }, 'waterway-label'); // Draw above water labels
+
     // 2.1. Add Asthma Index Rates
     map.addSource('asthma-index-source', { 
         type: 'geojson', 
-        data: 'data/Asthma_Index_Rates.geojson' 
+        data: 'data/Asthma_Index_Rates.geojson'
     });
+    
+    // Check if asthma data loaded correctly
+    setTimeout(() => {
+        const features = map.querySourceFeatures('asthma-index-source');
+        console.log(`Asthma data check: ${features.length} features loaded`);
+        
+        if (features.length > 0) {
+            console.log('✓ Asthma data loaded successfully!');
+            console.log('📍 Sample feature properties:', Object.keys(features[0].properties));
+            console.log('🎯 Layer should now be visible in step 4!');
+        } else {
+            console.log('⚠️ Asthma data not loaded - checking file path');
+            // Try to check if the source exists
+            const source = map.getSource('asthma-index-source');
+            if (source) {
+                console.log('✓ Asthma source exists but has no features');
+                // Try to manually load the data
+                fetch('data/Asthma_Index_Rates.geojson')
+                    .then(response => {
+                        console.log('📁 File response status:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('📊 Manual data load:', data.features?.length || 0, 'features');
+                        if (data.features && data.features.length > 0) {
+                            // Update the source with loaded data
+                            map.getSource('asthma-index-source').setData(data);
+                            console.log('✓ Asthma source updated with manual data');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error loading asthma data:', error);
+                    });
+            } else {
+                console.log('❌ Asthma source not found in map');
+            }
+        }
+    }, 2000);
     
     map.addLayer({
         'id': 'asthma-index-layer',
@@ -71,21 +159,21 @@ map.on('load', () => {
             'fill-color': [
                 'interpolate',
                 ['linear'],
-                ['coalesce', ['get', 'Asthma_Index_Rate'], 0],
-                0, 'rgba(0,0,0,0)',
-                50, '#FFEDA0',
-                100, '#FED976',
-                150, '#FEB24C',
-                200, '#FD8D3C',
-                250, '#FC4E2A',
-                300, '#E31A1C',
-                350, '#BD0026',
-                400, '#800026'
+                ['coalesce', ['get', 'Asthma_I_R'], 0],
+                0, 'rgba(240,240,240,0)',
+                50, '#f0f0f0',
+                100, '#d0d0d0',
+                150, '#b0b0b0',
+                200, '#909090',
+                250, '#707070',
+                300, '#505050',
+                350, '#303030',
+                400, '#000000'
             ],
-            'fill-opacity': 0.7,
+            'fill-opacity': 0.1,
             'fill-outline-color': '#333'
         }
-    }, 'park-lots-layer');
+    }, 'waterway-label'); // Draw above water labels
 
     // 3. Add Freight Routes
     map.addSource('freight-routes-source', {
@@ -106,7 +194,7 @@ map.on('load', () => {
             'line-width': 1,
             'line-opacity': 0.8
         }
-    }, 'asthma-index-layer');
+    });
 
     // 3.1. Add Asthma Hexagonal Data
     map.addSource('asthma-hex-source', {
@@ -241,27 +329,75 @@ map.on('load', () => {
         type: 'geojson',
         data: 'data/Vulnerability_facilities.geojson'  // Updated filename
     });
+    
+    // Check if vulnerable facilities data loaded correctly
+    setTimeout(() => {
+        const features = map.querySourceFeatures('vulnerable-facilities-source');
+        console.log(`Vulnerable facilities data check: ${features.length} features loaded`);
+        
+        if (features.length > 0) {
+            console.log('✓ Vulnerable facilities data loaded successfully!');
+            console.log('📍 Sample feature properties:', Object.keys(features[0].properties));
+            console.log('🎯 Facilities should now be visible in designated steps!');
+        } else {
+            console.log('⚠️ Vulnerable facilities data not loaded - checking file path');
+            // Try to check if the source exists
+            const source = map.getSource('vulnerable-facilities-source');
+            if (source) {
+                console.log('✓ Vulnerable facilities source exists but has no features');
+                // Try to manually load the data
+                fetch('data/Vulnerability_facilities.geojson')
+                    .then(response => {
+                        console.log('📁 Facilities file response status:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('📊 Manual facilities data load:', data.features?.length || 0, 'features');
+                        if (data.features && data.features.length > 0) {
+                            // Update the source with loaded data
+                            map.getSource('vulnerable-facilities-source').setData(data);
+                            console.log('✓ Vulnerable facilities source updated with manual data');
+                            console.log('🏥 Facility types found:', [...new Set(data.features.map(f => f.properties.f_type))]);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error loading vulnerable facilities data:', error);
+                    });
+            } else {
+                console.log('❌ Vulnerable facilities source not found in map');
+            }
+        }
+    }, 2000);
 
     map.addLayer({
         'id': 'vulnerable-facilities-layer',
         'type': 'circle',
         'source': 'vulnerable-facilities-source',
         'paint': {
-            'circle-radius': 5,
+            'circle-radius': 8,
             'circle-color': [
                 'match',
                 ['get', 'f_type'],
-                'Hospital', '#ff1100',      // Red for hospitals
-                'School', '#333333',       // Blue for schools  
-                'Day Care', '#404040',      // Green for daycare
+                'Hospital', '#ffffff',      
+                'School', '#adadad',       
+                'Day Care', '#000000',      
                 '#FFFFFF'                  // Default white for other types
             ],
-            'circle-stroke-width': 0,
+            'circle-stroke-width': 1,
             'circle-stroke-color': '#000000',
             'circle-opacity': 1,
             'circle-blur': 1
         }
     }, 'traffic-hotspots-layer');
+
+    // Check if vulnerable facilities layer was added successfully
+    setTimeout(() => {
+        if (map.getLayer('vulnerable-facilities-layer')) {
+            console.log('✓ Vulnerable facilities layer added successfully!');
+        } else {
+            console.log('⚠️ Vulnerable facilities layer not found in map');
+        }
+    }, 1000);
 
     // 6. Add Residential Areas
     map.addSource('residential-source', {
@@ -275,8 +411,91 @@ map.on('load', () => {
         'source': 'residential-source',
         'paint': {
             'fill-color': '#FBDBD9',
-            'fill-opacity': 0.0001,
-            'fill-outline-color': 'transparent'
+            'fill-opacity': 0,
+            'fill-outline-color': '#FBDBD9'
+        },
+        'layout': {
+            'visibility': 'none'
+        }
+    }, 'traffic-hotspots-layer');
+
+    // Create diagonal pattern image
+    const diagonalPattern = new Image();
+    diagonalPattern.src = 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="10" height="10" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="diagonal" patternUnits="userSpaceOnUse" width="10" height="10">
+                    <rect width="10" height="10" fill="transparent"/>
+                    <path d="M0,10 L10,0 M-5,5 L5,-5 M15,15 L25,5" stroke="#FBDBD9" stroke-width="1" opacity="0.4"/>
+                </pattern>
+            </defs>
+            <rect width="10" height="10" fill="url(#diagonal)"/>
+        </svg>
+    `);
+    
+    diagonalPattern.onload = function() {
+        map.addImage('diagonal-pattern', diagonalPattern);
+    };
+
+    // Create diagonal pattern with colored background for other scrolls
+    const diagonalPatternWithBackground = new Image();
+    diagonalPatternWithBackground.src = 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="10" height="10" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="diagonal-with-bg" patternUnits="userSpaceOnUse" width="10" height="10">
+                    <rect width="10" height="10" fill="#FBDBD9"/>
+                    <path d="M0,10 L10,0 M-5,5 L5,-5 M15,15 L25,5" stroke="#ffffff" stroke-width="1" opacity="0.6"/>
+                </pattern>
+            </defs>
+            <rect width="10" height="10" fill="url(#diagonal-with-bg)"/>
+        </svg>
+    `);
+    
+    diagonalPatternWithBackground.onload = function() {
+        map.addImage('diagonal-pattern-with-bg', diagonalPatternWithBackground);
+    };
+
+    // Add residential line layer for dotted white stroke
+    map.addLayer({
+        'id': 'residential-stroke-layer',
+        'type': 'line',
+        'source': 'residential-source',
+        'paint': {
+            'line-color': '#FFFFFF',
+            'line-width': 1.5,
+            'line-dasharray': [2, 4], // Dotted pattern
+            'line-opacity': 0.8
+        },
+        'layout': {
+            'visibility': 'none' // Hidden initially
+        }
+    }, 'traffic-hotspots-layer');
+
+    // Add residential layer with diagonal pattern
+    map.addLayer({
+        'id': 'residential-diagonal-layer',
+        'type': 'fill',
+        'source': 'residential-source',
+        'paint': {
+            'fill-pattern': 'diagonal-pattern',
+            'fill-opacity': 0.6
+        },
+        'layout': {
+            'visibility': 'none' // Hidden initially
+        }
+    }, 'traffic-hotspots-layer');
+
+    // Add residential layer with diagonal pattern and colored background (for other scrolls)
+    map.addLayer({
+        'id': 'residential-diagonal-bg-layer',
+        'type': 'fill',
+        'source': 'residential-source',
+        'paint': {
+            'fill-pattern': 'diagonal-pattern-with-bg',
+            'fill-opacity': 0.8
+        },
+        'layout': {
+            'visibility': 'none' // Hidden initially
         }
     }, 'traffic-hotspots-layer');
 
@@ -341,10 +560,269 @@ fetch('data/CVI_hex.geojson')
         }, 'traffic-hotspots-layer');
 
         console.log('CVI 3D layer added with processed data');
+        
+        // --- SCROLL 8: INTERVENTION ZONES (SOLUTION LAYER) ---
+        // Load intervention zones after CVI layer is successfully added
+        return fetch('data/Intervention_Zones_3D.geojson');
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Process features to ensure CVI_mean is a valid number and filter out zeros
+        const processedData = {
+            ...data,
+            features: data.features
+                .filter(feature => {
+                    const cviMean = feature.properties.CVI_mean;
+                    return cviMean !== null && 
+                           !isNaN(parseFloat(cviMean)) && 
+                           parseFloat(cviMean) > 0;
+                })
+                .map(feature => ({
+                    ...feature,
+                    properties: {
+                        ...feature.properties,
+                        CVI_mean: parseFloat(feature.properties.CVI_mean)
+                    }
+                }))
+        };
+
+        // 1. Add Source
+        map.addSource('intervention-source', {
+            type: 'geojson',
+            data: processedData
+        });
+
+        // 2. Add the 3D Extrusion Layer (Pillars)
+        map.addLayer({
+    'id': 'intervention-3d-extrusion',
+    'type': 'fill-extrusion',
+    'source': 'intervention-source',
+    'paint': {
+        // A. EXTRUSION HEIGHT: This defines the top of the pillar. Keep the existing height scale.
+        'fill-extrusion-height': [
+            'interpolate', ['exponential', 2.5], 
+            ['get', 'CVI_mean'], 
+            -1.0, 100,      
+            0.0, 100,       
+            0.1, 300,       
+            0.3, 1000,      
+            0.6, 2000,      
+            1.0, 4000,      
+            2.0, 5000       
+        ],
+        // B. EXTRUSION BASE: *** CRITICAL CHANGE *** Set the base to 0 to start from the ground.
+        'fill-extrusion-base': 0, // FIXED VALUE: Always starts at ground level
+        
+        // C. EXTRUSION COLOR: Changed to the pink/red color from your snippet
+        'fill-extrusion-color': '#F28A8A', 
+        'fill-extrusion-opacity': 1.0 
+    },
+    'layout': {
+        'visibility': 'none' // Initially hidden
+    }
+}, 'cvi-3d-extrusion'); // Keep stacking above CVI if desired, though now they overlap completely.
+
+        console.log('Intervention zones layer added successfully');
+        
+        // --- SCROLL 9: FINAL RESILIENCE SOLUTION LAYER (2D) ---
+        map.addSource('resilience-source', {
+            type: 'geojson',
+            data: 'data/resilience_solution_areas.geojson' // The renamed file
+        });
+
+        map.addLayer({
+            'id': 'resilience-fill',
+            'type': 'fill', // Important: This is a 2D layer
+            'source': 'resilience-source',
+            'paint': {
+                'fill-color': '#F28A8A', // Clear green for "Canopy Gain"
+                'fill-opacity': 0.15, // Low opacity for subtle background
+                'fill-outline-color': 'rgba(255, 0, 0, 0.8)' // Defined outline with high opacity for the paper map aesthetic
+            },
+            'layout': {
+                'visibility': 'none' // Hidden until Scroll 9
+            }
+        }); // Place at top of layer stack
+        
+        console.log('Resilience solution layer added successfully');
     })
     .catch(error => {
-        console.error('Error loading CVI data:', error);
+        console.error('Error loading data:', error);
     });
+
+    // --- SCROLL 11: SECONDARY INTERVENTION (RESIDENTIAL BIVARIATE) ---
+    map.addSource('secondary-source', {
+        type: 'geojson',
+        data: 'data/Secondary_Intervention_Residential.geojson' 
+    });
+
+    map.addLayer({
+        'id': 'resilience-bivariate-fill',
+        'type': 'fill', 
+        'source': 'secondary-source',
+        'paint': {
+            'fill-opacity': 0.9,
+            'fill-outline-color': '#FFFFFF',
+            // Bivariate color logic for Canopy % vs Asthma Index (3-tier priority system)
+            'fill-color': [
+                'case',
+                // ----------------------------------------------------
+                // 1. ASTHMA HIGH PRIORITY (E.g., > 200) - Use gray to green gradient
+                ['>=', ['get', 'Asthma_I_R_mean_mean_majority'], 200], 
+                [
+                    'case',
+                    ['<=', ['get', 'Canopy_Pct_majority'], 5], '#404040', // High Asthma / Low Canopy (Dark Gray - MAX PRIORITY)
+                    ['<=', ['get', 'Canopy_Pct_majority'], 10], '#7a8c3d', // High Asthma / Mid Canopy (Yellow-Green)
+                    '#295229' // High Asthma / High Canopy (Dark Green)
+                ],
+                // ----------------------------------------------------
+                // 2. ASTHMA MEDIUM PRIORITY (E.g., 150 - 200) - Use lighter gray to green
+                ['>=', ['get', 'Asthma_I_R_mean_mean_majority'], 150], 
+                [
+                    'case',
+                    ['<=', ['get', 'Canopy_Pct_majority'], 5], '#808080', // Mid Asthma / Low Canopy (Medium Gray)
+                    ['<=', ['get', 'Canopy_Pct_majority'], 10], '#a3b868', // Mid Asthma / Mid Canopy (Light Yellow-Green)
+                    '#4d8c4d' // Mid Asthma / High Canopy (Medium Green)
+                ],
+                // ----------------------------------------------------
+                // 3. ASTHMA LOW PRIORITY (Default below 150) - Use lightest gray to green
+                [
+                    'case',
+                    ['<=', ['get', 'Canopy_Pct_majority'], 5], '#bfbfbf', // Low Asthma / Low Canopy (Light Gray)
+                    ['<=', ['get', 'Canopy_Pct_majority'], 10], '#c9d4a3', // Low Asthma / Mid Canopy (Very Light Yellow-Green)
+                    '#99cc99' // Low Asthma / High Canopy (Light Green)
+                ]
+            ]
+        },
+        'layout': {
+            'visibility': 'none'
+        }
+    }, 'waterway-label');
+
+    console.log('Secondary intervention bivariate layer added successfully');
+
+    // --- SCROLL 12: SECONDARY INTERVENTION (RESIDENTIAL TRIVARIATE) ---
+    map.addSource('secondary-residential-source', {
+        type: 'geojson',
+        data: 'data/Secondary_Intervention_Residential_TRIVARIATE.geojson' 
+    });
+
+    map.addLayer({
+        'id': 'resilience-trivariate-fill',
+        'type': 'fill', 
+        'source': 'secondary-residential-source',
+        'paint': {
+            'fill-outline-color': '#FFFFFF', // White outline for contrast
+            
+            // 1. FILL-COLOR: TRIVARIATE (Asthma vs. Canopy vs. CVI) - Earthy Feral Atlas palette
+            'fill-color': [
+                'case',
+                // --- HIGH CVI VULNERABILITY (>= 2.0) - Use Rust/Brown tones ---
+                ['>=', ['coalesce', ['get', 'CVI_mean'], 0], 2.0],
+                [
+                    'case',
+                    // High Asthma + Low Canopy = Deep Rust Brown (MAX PRIORITY)
+                    ['all', ['>=', ['coalesce', ['get', 'Asthma_mean'], 0], 2.0], ['<=', ['coalesce', ['get', 'Canopy_mean'], 0], 10]], '#5C1A1A',
+                    // High Asthma + High Canopy = Terra Cotta
+                    ['all', ['>=', ['coalesce', ['get', 'Asthma_mean'], 0], 2.0], ['>', ['coalesce', ['get', 'Canopy_mean'], 0], 10]], '#8B3A3A',
+                    // Low Asthma + Low Canopy = Earthy Brown
+                    ['all', ['<', ['coalesce', ['get', 'Asthma_mean'], 0], 1.5], ['<=', ['coalesce', ['get', 'Canopy_mean'], 0], 10]], '#664B3C',
+                    // Low Asthma + High Canopy = Sandy Brown
+                    '#8B7355'
+                ],
+                // --- MEDIUM CVI VULNERABILITY (>= 1.0) - Use Ochre/Gold tones ---
+                ['>=', ['coalesce', ['get', 'CVI_mean'], 0], 1.0],
+                [
+                    'case',
+                    // High Asthma + Low Canopy = Dark Goldenrod
+                    ['all', ['>=', ['coalesce', ['get', 'Asthma_mean'], 0], 2.0], ['<=', ['coalesce', ['get', 'Canopy_mean'], 0], 10]], '#8B6914',
+                    // High Asthma + High Canopy = Golden Ochre
+                    ['all', ['>=', ['coalesce', ['get', 'Asthma_mean'], 0], 2.0], ['>', ['coalesce', ['get', 'Canopy_mean'], 0], 10]], '#B8860B',
+                    // Low Asthma + Low Canopy = Wheat
+                    ['all', ['<', ['coalesce', ['get', 'Asthma_mean'], 0], 1.5], ['<=', ['coalesce', ['get', 'Canopy_mean'], 0], 10]], '#C2A756',
+                    // Low Asthma + High Canopy = Pale Gold
+                    '#D4AF6A'
+                ],
+                // --- LOW CVI VULNERABILITY - Use Green/Mint tones ---
+                [
+                    'case',
+                    // High Asthma + Low Canopy = Forest Green
+                    ['all', ['>=', ['coalesce', ['get', 'Asthma_mean'], 0], 2.0], ['<=', ['coalesce', ['get', 'Canopy_mean'], 0], 10]], '#2F5233',
+                    // High Asthma + High Canopy = Sage Green
+                    ['all', ['>=', ['coalesce', ['get', 'Asthma_mean'], 0], 2.0], ['>', ['coalesce', ['get', 'Canopy_mean'], 0], 10]], '#4A7C59',
+                    // Low Asthma + Low Canopy = Seafoam
+                    ['all', ['<', ['coalesce', ['get', 'Asthma_mean'], 0], 1.5], ['<=', ['coalesce', ['get', 'Canopy_mean'], 0], 10]], '#5A8F7B',
+                    // Low Asthma + High Canopy = Mint Green (best case)
+                    '#7DB09B'
+                ]
+            ],
+            
+            // 2. FILL-OPACITY: Fixed for visibility
+            'fill-opacity': 0.8
+        },
+        'layout': {
+            'visibility': 'none' // Hidden initially
+        }
+    }, 'waterway-label');
+
+    console.log('Secondary intervention trivariate layer added successfully');
+
+    // --- SCROLL 12: MAX PRIORITY OVERLAY ---
+    map.addSource('max-priority-source', {
+        type: 'geojson',
+        data: 'data/Secondary_Intervention_Residential.geojson' 
+    });
+
+    // --- SCROLL 15: CITY TYPE ANALYSIS ---
+    map.addSource('city-type-source', {
+        type: 'geojson',
+        data: 'data/City_Type.geojson'
+    });
+
+    map.addLayer({
+        'id': 'resilience-max-priority-fill',
+        'type': 'line', 
+        'source': 'max-priority-source',
+        'filter': [
+            'all', 
+            ['>=', ['get', 'Asthma_I_R_mean_mean_majority'], 200],
+            ['<=', ['get', 'Canopy_Pct_majority'], 5]
+        ],
+        'paint': {
+            'line-color': '#FF0000', // Bright red
+            'line-width': 3,
+            'line-opacity': 0.9
+        },
+        'layout': {
+            'visibility': 'none' // Hidden initially
+        }
+    }, 'waterway-label');
+
+    console.log('Max priority overlay layer added successfully');
+
+    // --- SCROLL 15: CITY TYPE LAYER ---
+    map.addLayer({
+        'id': 'city-type-fill',
+        'type': 'fill',
+        'source': 'city-type-source',
+        'paint': {
+            'fill-color': [
+                'match',
+                ['get', 'City_Type'],
+                'Gray City', '#808080',
+                'Green City', '#228B22',
+                'Feral City', '#8B4513',
+                'Human City', '#4169E1',
+                '#CCCCCC' // Default color
+            ],
+            'fill-opacity': 0.7
+        },
+        'layout': {
+            'visibility': 'none' // Hidden initially
+        }
+    }, 'waterway-label');
+
+    console.log('City type layer added successfully');
 
     // Add map controls
     map.addControl(new mapboxgl.NavigationControl(), 'top-left');
@@ -466,10 +944,10 @@ map.addLayer({
         document.body.removeChild(loadingEl);
     }
 
-    // Initialize scrollytelling after a short delay to ensure all layers are loaded
+    // Initialize scrollytelling after a longer delay to ensure all layers are loaded
     setTimeout(() => {
         initScrollytelling();
-    }, 500);
+    }, 1500);
 });
 
 // Scrollytelling configuration
@@ -528,14 +1006,14 @@ const storySteps = {
         zoom: 12.5,
         layers: [
             ['park-lots-layer', 'visible', 1.0],
-            ['asthma-index-layer', 'visible', 0.7],
+            ['asthma-index-layer', 'none', 0],
             ['asthma-hex-fill', 'none', 0], // Asthma Hex (Hidden)
             ['freight-routes-layer', 'visible', 0.8],
             ['freight-zones-layer', 'visible', 0.7],
             ['traffic-hotspots-layer', 'visible', 0.8],
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'visible', 1.0],
-            ['residential-layer', 'visible', 0.6], // Show residential areas
+            ['residential-layer', 'visible', 0.6], // Show residential areas with solid fill
             ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
     },
@@ -544,8 +1022,8 @@ const storySteps = {
         zoom: 12.5,
         layers: [
             ['park-lots-layer', 'none', 0],
-            ['asthma-index-layer', 'none', 0],
             ['asthma-hex-fill', 'none', 0], // Asthma Hex (Hidden)
+            ['asthma-index-layer', 'visible', 0.7], // Asthma Index below freight layers
             ['freight-routes-layer', 'visible', 1.0], // Freight Routes prominent
             ['freight-zones-layer', 'visible', 1.0], // Freight Zones prominent
             ['traffic-hotspots-layer', 'none', 0],
@@ -587,11 +1065,46 @@ const storySteps = {
             ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
     },
-    7: { // CVI 3D Extrusion - Show CVI 3D layer with dramatic perspective
-        center: [-73.88, 40.85], // Center on South Bronx for high CVI areas
-        zoom: 12,
-        pitch: 45, // Add 3D perspective
-        bearing: 0,
+    7: { // E-destination - Electric Vehicle Infrastructure Planning
+        center: [-73.88, 40.85], // Stay in Bronx
+        zoom: 12.5,
+        layers: [
+            ['park-lots-layer', 'visible', 0.8], // Parks visible but faded
+            ['asthma-index-layer', 'visible', 0.6], // Asthma visible but faded
+            ['asthma-hex-fill', 'none', 0], // Hide Asthma Hex
+            ['freight-routes-layer', 'visible', 0.3], // Freight very faded
+            ['freight-zones-layer', 'visible', 0.3], // Freight zones very faded
+            ['traffic-hotspots-layer', 'visible', 0.5], // Traffic hotspots visible for EV charging analysis
+            ['junction-hotspots-layer', 'visible', 0.5], // Junction hotspots visible for EV charging analysis
+            ['vulnerable-facilities-layer', 'visible', 0.8], // Facilities visible for EV proximity analysis
+            ['residential-layer', 'none', 0], // Residential areas visible for EV infrastructure planning
+            ['E-designation', 'visible', 1.0], // E-designation polygons visible
+            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
+        ]
+    },
+    8: { // Impervious Surface Density Analysis
+        center: [-73.88, 40.85], // Stay in Bronx
+        zoom: 12.5,
+        layers: [
+            ['park-lots-layer', 'visible', 0.8], // Parks visible (will be set to white)
+            ['asthma-index-layer', 'none', 0], // Hide health layers
+            ['asthma-hex-fill', 'none', 0],
+            ['freight-routes-layer', 'none', 0], // Hide freight layers
+            ['freight-zones-layer', 'none', 0],
+            ['traffic-hotspots-layer', 'none', 0], // Hide traffic layers
+            ['junction-hotspots-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'none', 0], // Hide facilities
+            ['residential-layer', 'none', 0], // Hide residential
+            ['E-designation', 'none', 0], // Hide E-designation
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D hidden
+            ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
+            ['imp-density-layer', 'visible', 0.9] // Impervious density prominent
+        ]
+    },
+    9: { // CVI Layer (Starting point - flat 2D)
+        center: [-73.95, 40.85], 
+        zoom: 11,
+        // No pitch or bearing defined (or set to 0), so the global function uses 0/0.
         layers: [
             ['park-lots-layer', 'visible', 0.3], // Parks faded
             ['asthma-index-layer', 'none', 0], // Hide other layers
@@ -601,10 +1114,146 @@ const storySteps = {
             ['traffic-hotspots-layer', 'none', 0],
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'visible', 0.4], // Facilities visible but faded
-            ['residential-layer', 'visible', 0.1], // Residential very faded
-            ['cvi-3d-extrusion', 'visible', 0.9] // CVI 3D prominent
+            ['residential-layer', 'visible', 0.1], // Residential very faded with solid fill
+            ['cvi-3d-extrusion', 'visible', 0.9], // CVI 3D prominent
+            ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
         ]
     },
+    10: { // Intervention (Flat 2D Introduction - same as scroll 9)
+        center: [-73.95, 40.85], // Same center as scroll 7
+        zoom: 11,                // Same zoom as scroll 7
+        // No pitch or bearing defined (flat 2D view, same as scroll 7)
+        layers: [
+            ['park-lots-layer', 'visible', 0.3], // Parks faded (same as scroll 7)
+            ['asthma-index-layer', 'none', 0], // Hide other layers
+            ['asthma-hex-fill', 'none', 0],
+            ['freight-routes-layer', 'visible', 0.2], // Freight very faded
+            ['freight-zones-layer', 'none', 0],
+            ['traffic-hotspots-layer', 'none', 0],
+            ['junction-hotspots-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'visible', 0.4], // Facilities visible but faded
+            ['residential-layer', 'visible', 0.1], // Residential very faded with solid fill
+            ['cvi-3d-extrusion', 'visible', 0.3], // CVI problem areas visible
+            ['intervention-3d-extrusion', 'visible', 1.0], // Intervention zones prominent
+            ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
+        ]
+    },
+    11: { // Resilience Solutions - 3D Intervention View (same perspective as scroll 8)
+            center: [-73.9, 40.85], // Same center as intervention step
+            zoom: 12,
+            pitch: 50,         // Same 3D perspective as scroll 8
+            bearing: -30,      // Same bearing as scroll 8
+            layers: [
+                ['park-lots-layer', 'visible', 0.2], // Parks very faded
+                ['asthma-index-layer', 'none', 0], // Hide other layers
+                ['asthma-hex-fill', 'none', 0],
+                ['freight-routes-layer', 'visible', 0.1], // Freight barely visible
+                ['freight-zones-layer', 'none', 0],
+                ['traffic-hotspots-layer', 'none', 0],
+                ['junction-hotspots-layer', 'none', 0],
+                ['vulnerable-facilities-layer', 'visible', 0.3], // Facilities faded
+                ['residential-layer', 'visible', 0.1], // Residential very faded with solid fill
+                ['cvi-3d-extrusion', 'none', 0], // CVI problem areas visible
+                ['intervention-3d-extrusion', 'visible', 0.8], // Intervention zones visible
+                ['resilience-fill', 'none', 0], // Resilience solutions visible in 3D
+            ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
+            ]
+        },
+        12: { // Resilience Solutions - Final 2D canopy gain areas
+        center: [-73.95, 40.78], // Same center as intervention step
+        zoom: 10.5,
+        pitch: 0, // Return to 2D view
+        bearing: 0,
+        layers: [
+            ['park-lots-layer', 'visible', 0.3], // Parks visible for context
+            ['asthma-index-layer', 'none', 0], // Hide other layers
+            ['asthma-hex-fill', 'none', 0],
+            ['freight-routes-layer', 'visible', 0.2], // Freight faded
+            ['freight-zones-layer', 'none', 0],
+            ['traffic-hotspots-layer', 'none', 0],
+            ['junction-hotspots-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'visible', 0.5], // Facilities visible
+            ['residential-layer', 'none', 0], // Residential faded
+            ['cvi-3d-extrusion', 'none', 0], // Hide CVI 3D
+            ['intervention-3d-extrusion', 'none', 0], // Hide intervention 3D
+            ['resilience-fill', 'visible', 0.5], // Show resilience solutions with reduced opacity
+            ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
+        ]
+    },
+    13: { // Secondary Intervention - Residential Bivariate Analysis
+        center: [-73.95, 40.78], // Same center as scroll 10
+        zoom: 10.5, // Same zoom as scroll 10
+        pitch: 0, // 2D view for bivariate analysis
+        bearing: 0,
+        layers: [
+            ['park-lots-layer', 'none', 0], // Hide all other layers
+            ['asthma-index-layer', 'none', 0],
+            ['asthma-hex-fill', 'none', 0],
+            ['freight-routes-layer', 'none', 0],
+            ['freight-zones-layer', 'none', 0],
+            ['traffic-hotspots-layer', 'none', 0],
+            ['junction-hotspots-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'none', 0],
+            ['residential-layer', 'none', 0],
+            ['cvi-3d-extrusion', 'none', 0],
+            ['intervention-3d-extrusion', 'none', 0],
+            ['resilience-fill', 'visible', 0.15], // Show resilience solutions as faded background
+            ['resilience-bivariate-fill', 'visible', 0.5] // Show bivariate analysis prominently
+        ]
+    },
+    14: { // Secondary Intervention - Residential Trivariate Analysis
+        center: [-73.95, 40.80], // Center on analysis area
+        zoom: 12,
+        pitch: 0,          // Return to 2D
+        bearing: 0,
+        layers: [
+            // Hide all 3D layers and previous risk visualizations
+            ['cvi-3d-extrusion', 'none', 0], 
+            ['intervention-3d-extrusion', 'none', 0], 
+            ['resilience-fill', 'none', 0], // Hide the previous solution layer
+            ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
+            ['3d-buildings', 'none', 0], // Hide 3D buildings layer
+            ['city-type-fill', 'none', 0], // Hide city type layer
+
+            // Show the new Trivariate Residential layer prominently
+            ['resilience-trivariate-fill', 'visible', 1.0], // Opacity is driven by data
+            ['resilience-max-priority-fill', 'visible', 0.7], // Show max priority overlay
+
+            // Optional context layers (e.g., roads, base map labels)
+            ['residential-layer', 'visible', 0.2], // Fade residential context with solid fill
+            ['park-lots-layer', 'visible', 0.5] // Show park context
+        ]
+    },
+    15: { // City Type Analysis
+        center: [-73.95, 40.80], // Same center as step 14
+        zoom: 12,               // Same zoom as step 14
+        pitch: 0,          // 2D view
+        bearing: 0,
+        layers: [
+            // Hide ALL layers except city type
+            ['cvi-3d-extrusion', 'none', 0], 
+            ['intervention-3d-extrusion', 'none', 0], 
+            ['resilience-fill', 'none', 0],
+            ['resilience-bivariate-fill', 'none', 0],
+            ['resilience-trivariate-fill', 'none', 0],
+            ['resilience-max-priority-fill', 'none', 0],
+            ['3d-buildings', 'none', 0],
+            ['residential-layer', 'visible', 0.1], // Show residential fill with minimal opacity to see outline
+            ['residential-diagonal-layer', 'visible', 0.6], // Show diagonal pattern
+            ['residential-stroke-layer', 'none', 0], // Hide dotted stroke
+            ['park-lots-layer', 'none', 0], // Hide park context
+            ['vulnerable-facilities-layer', 'none', 0], // Hide facility context
+            ['asthma-index-layer', 'none', 0], // Hide other layers
+            ['asthma-hex-fill', 'none', 0],
+            ['freight-routes-layer', 'none', 0],
+            ['freight-zones-layer', 'none', 0],
+            ['traffic-hotspots-layer', 'none', 0],
+            ['junction-hotspots-layer', 'none', 0],
+
+            // Only show City Type layer
+            ['city-type-fill', 'visible', 1.0]
+        ]
+    }
 };
 
 // Initialize scrollytelling
@@ -626,6 +1275,21 @@ function initScrollytelling() {
 
         // Scrollama event handlers
         function handleStepEnter(response) {
+            const stepIndex = response.index;
+            
+            // Hide all legends first
+            const allLegends = document.querySelectorAll('.legend');
+            allLegends.forEach(legend => {
+                legend.classList.remove('active');
+            });
+            
+            // Show legend for current step if it exists
+            const stepLegendId = `legend-${stepIndex + 1}`;
+            const currentLegend = document.getElementById(stepLegendId);
+            if (currentLegend) {
+                currentLegend.classList.add('active');
+            }
+            
             // Hide previous layers when scrolling to a new one
             if (map.getLayer('asthma-hex-fill')) {
                 map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
@@ -633,11 +1297,31 @@ function initScrollytelling() {
             if (map.getLayer('cvi-3d-extrusion')) {
                 map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
             }
+            // HIDE THE NEW INTERVENTION LAYER HERE
+            if (map.getLayer('intervention-3d-extrusion')) {
+                map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
+            }
+            // HIDE THE RESILIENCE LAYER HERE
+            if (map.getLayer('resilience-fill')) {
+                map.setLayoutProperty('resilience-fill', 'visibility', 'none');
+            }
+            // HIDE THE BIVARIATE LAYER HERE
+            if (map.getLayer('resilience-bivariate-fill')) {
+                map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'none');
+            }
+            // HIDE THE TRIVARIATE LAYER HERE
+            if (map.getLayer('resilience-trivariate-fill')) {
+                map.setLayoutProperty('resilience-trivariate-fill', 'visibility', 'none');
+            }
+            // HIDE THE MAX PRIORITY LAYER HERE
+            if (map.getLayer('resilience-max-priority-fill')) {
+                map.setLayoutProperty('resilience-max-priority-fill', 'visibility', 'none');
+            }
 
             console.log('Entering step:', response.index, response.element.id);
-            const stepIndex = response.element.getAttribute('data-step');
+            const stepDataIndex = response.element.getAttribute('data-step');
             
-            if (!stepIndex) {
+            if (!stepDataIndex) {
                 console.warn('Step element missing data-step attribute:', response.element);
                 return;
             }
@@ -662,6 +1346,213 @@ function initScrollytelling() {
                     duration: 2500,           // Slightly longer for dramatic effect
                     curve: 1.2,               // More pronounced curve in flight path
                     essential: true
+                });
+            } else if (response.element.id === 'scroll-8-intervention-step') { 
+                console.log('Entering Scroll 8: Flat 2D Introduction');
+                
+                // Ensure CVI and Intervention layers are visible
+                if (map.getLayer('cvi-3d-extrusion')) {
+                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
+                }
+                if (map.getLayer('intervention-3d-extrusion')) {
+                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'visible');
+                }
+
+                // The map.flyTo is called *outside* this block using the flat 2D pitch:0/bearing:0 from the stepData!
+            } else if (response.element.id === 'scroll-11-resilience-3d-step') {
+                // 1. Show CVI Problem layer (red pillars) for context
+                if (map.getLayer('cvi-3d-extrusion')) {
+                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
+                }
+                
+                // 2. Show Intervention layer (yellow pillars)
+                if (map.getLayer('intervention-3d-extrusion')) {
+                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'visible');
+                }
+                
+                // 3. Show Resilience solutions layer
+                if (map.getLayer('resilience-fill')) {
+                    map.setLayoutProperty('resilience-fill', 'visibility', 'visible');
+                }
+                
+                // 4. Maintain same 3D camera view as scroll 8
+                map.flyTo({
+                    pitch: 50,         // Same pitch as scroll 8
+                    bearing: -30,      // Same bearing as scroll 8
+                    zoom: 12,
+                    duration: 1500
+                });
+            } else if (response.element.id === 'scroll-13-resilience-step') {
+                console.log('Entering Scroll 10: Final Resilience Solution');
+                
+                // 1. Hide ALL 3D problem/solution layers (the transition from drama to calm)
+                if (map.getLayer('cvi-3d-extrusion')) {
+                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
+                }
+                if (map.getLayer('intervention-3d-extrusion')) {
+                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
+                }
+                if (map.getLayer('3d-buildings')) { // Hide the base map buildings too
+                    map.setLayoutProperty('3d-buildings', 'visibility', 'none');
+                }
+
+                // 2. Reveal the new 2D Solution Layer
+                if (map.getLayer('resilience-fill')) {
+                    map.setLayoutProperty('resilience-fill', 'visibility', 'visible');
+                }
+
+                // 3. Transition to the 2D, overhead "Paper Map" view
+                map.flyTo({
+                    center: [-73.95, 40.75], 
+                    pitch: 0,             // Crucial: Returns to 2D
+                    bearing: 0,           // Removes rotation
+                    zoom: 11,
+                    duration: 3000
+                });
+                
+                // Optional: Switch to a light map style for the "paper map" effect
+                // map.setStyle('mapbox://styles/mapbox/light-v11'); 
+            } else if (response.element.id === 'scroll-14-secondary-intervention-step') {
+                console.log('Entering Scroll 11: Secondary Intervention - Residential Bivariate Analysis');
+                
+                // 1. Hide ALL 3D and other layers to focus on bivariate
+                if (map.getLayer('cvi-3d-extrusion')) {
+                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
+                }
+                if (map.getLayer('intervention-3d-extrusion')) {
+                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
+                }
+                if (map.getLayer('3d-buildings')) {
+                    map.setLayoutProperty('3d-buildings', 'visibility', 'none');
+                }
+                if (map.getLayer('resilience-fill')) {
+                    map.setLayoutProperty('resilience-fill', 'visibility', 'none');
+                }
+                
+                // 2. Reveal the bivariate layer
+                if (map.getLayer('resilience-bivariate-fill')) {
+                    map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'visible');
+                }
+                
+                // 3. Fly to South Bronx residential areas for detailed analysis
+                map.flyTo({
+                    center: [-73.88, 40.85],
+                    pitch: 0,             // 2D view for bivariate analysis
+                    bearing: 0,           // North-up orientation
+                    zoom: 12,
+                    duration: 2000
+                }); 
+            } else if (response.element.id === 'scroll-15-trivariate-solutions') {
+                // Hide all previous layers
+                if (map.getLayer('asthma-hex-fill')) {
+                    map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
+                }
+                if (map.getLayer('cvi-3d-extrusion')) {
+                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
+                }
+                if (map.getLayer('intervention-3d-extrusion')) {
+                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
+                }
+                if (map.getLayer('resilience-fill')) {
+                    map.setLayoutProperty('resilience-fill', 'visibility', 'none');
+                }
+                if (map.getLayer('resilience-bivariate-fill')) {
+                    map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'none');
+                }
+                if (map.getLayer('resilience-trivariate-fill')) {
+                    map.setLayoutProperty('resilience-trivariate-fill', 'visibility', 'none');
+                }
+                if (map.getLayer('city-type-fill')) {
+                    map.setLayoutProperty('city-type-fill', 'visibility', 'none');
+                }
+
+                // Fade residential and park layers for context
+                if (map.getLayer('residential-fill')) {
+                    map.setPaintProperty('residential-fill', 'fill-opacity', 0.3);
+                }
+                if (map.getLayer('park-fill')) {
+                    map.setPaintProperty('park-fill', 'fill-opacity', 0.3);
+                }
+
+                // Initialize vanilla JavaScript heatmap
+                const container = document.getElementById('trivariate-heatmap');
+                if (container && !container.hasChildNodes()) {
+                    const heatmap = window.createTrivariateHeatmap();
+                    container.appendChild(heatmap);
+                }
+            } else if (response.element.id === 'scroll-16-city-type-step') {
+                console.log('Entering Scroll 15: City Type Analysis');
+                
+                // Hide ALL layers except city type
+                if (map.getLayer('cvi-3d-extrusion')) {
+                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
+                }
+                if (map.getLayer('intervention-3d-extrusion')) {
+                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
+                }
+                if (map.getLayer('resilience-fill')) {
+                    map.setLayoutProperty('resilience-fill', 'visibility', 'none');
+                }
+                if (map.getLayer('resilience-bivariate-fill')) {
+                    map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'none');
+                }
+                if (map.getLayer('resilience-trivariate-fill')) {
+                    map.setLayoutProperty('resilience-trivariate-fill', 'visibility', 'none');
+                }
+                if (map.getLayer('resilience-max-priority-fill')) {
+                    map.setLayoutProperty('resilience-max-priority-fill', 'visibility', 'none');
+                }
+                if (map.getLayer('3d-buildings')) {
+                    map.setLayoutProperty('3d-buildings', 'visibility', 'none');
+                }
+                if (map.getLayer('residential-layer')) {
+                    map.setLayoutProperty('residential-layer', 'visibility', 'visible');
+                    map.setPaintProperty('residential-layer', 'fill-opacity', 0.1);
+                }
+                if (map.getLayer('residential-diagonal-layer')) {
+                    map.setLayoutProperty('residential-diagonal-layer', 'visibility', 'visible');
+                    map.setPaintProperty('residential-diagonal-layer', 'fill-opacity', 0.6);
+                }
+                if (map.getLayer('residential-stroke-layer')) {
+                    map.setLayoutProperty('residential-stroke-layer', 'visibility', 'none');
+                }
+                if (map.getLayer('park-lots-layer')) {
+                    map.setLayoutProperty('park-lots-layer', 'visibility', 'none');
+                }
+                if (map.getLayer('vulnerable-facilities-layer')) {
+                    map.setLayoutProperty('vulnerable-facilities-layer', 'visibility', 'none');
+                }
+                if (map.getLayer('asthma-index-layer')) {
+                    map.setLayoutProperty('asthma-index-layer', 'visibility', 'none');
+                }
+                if (map.getLayer('asthma-hex-fill')) {
+                    map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
+                }
+                if (map.getLayer('freight-routes-layer')) {
+                    map.setLayoutProperty('freight-routes-layer', 'visibility', 'none');
+                }
+                if (map.getLayer('freight-zones-layer')) {
+                    map.setLayoutProperty('freight-zones-layer', 'visibility', 'none');
+                }
+                if (map.getLayer('traffic-hotspots-layer')) {
+                    map.setLayoutProperty('traffic-hotspots-layer', 'visibility', 'none');
+                }
+                if (map.getLayer('junction-hotspots-layer')) {
+                    map.setLayoutProperty('junction-hotspots-layer', 'visibility', 'none');
+                }
+
+                // Show ONLY City Type layer
+                if (map.getLayer('city-type-fill')) {
+                    map.setLayoutProperty('city-type-fill', 'visibility', 'visible');
+                }
+
+                // Fly to same area as step 14 for city type overview
+                map.flyTo({
+                    center: [-73.95, 40.80], // Same center as step 14
+                    pitch: 0,             // 2D view
+                    bearing: 0,           // North-up orientation
+                    zoom: 12,             // Same zoom as step 14
+                    duration: 2000
                 });
             } else if (response.element.id === 'step-7') {
                 // CVI 3D Extrusion step - show CVI 3D layer prominently with 3D perspective
@@ -692,10 +1583,28 @@ function initScrollytelling() {
                     map.setLayoutProperty('asthma-hex-fill', 'visibility', 'visible');
                     map.setPaintProperty('asthma-hex-fill', 'fill-opacity', 0.6);
                 }
+            } else if (response.element.id === 'scroll-6-intervention-step') { 
+                // 1. Ensure the CVI Problem layer (red pillars) is visible for context
+                if (map.getLayer('cvi-3d-extrusion')) {
+                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
+                }
+                
+                // 2. Reveal the Solution layer (yellow pillars)
+                if (map.getLayer('intervention-3d-extrusion')) {
+                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'visible');
+                }
+                
+                // 3. Maintain 3D camera view and zoom slightly
+                map.flyTo({
+                     pitch: 70, 
+                     bearing: -20, 
+                     zoom: 11,
+                     duration: 1500
+                });
             }
             
             // Update map state
-            updateMap(stepIndex);
+            updateMap(stepDataIndex);
         }
 
         const scroller = scrollama();
@@ -711,6 +1620,13 @@ function initScrollytelling() {
             .onStepEnter(handleStepEnter)
             .onStepExit(response => {
                 console.log('Exiting step:', response.index);
+                
+                // Hide residential-diagonal-layer when exiting scroll 16 (step 15)
+                if (response.index === 15) {
+                    if (map.getLayer('residential-diagonal-layer')) {
+                        map.setLayoutProperty('residential-diagonal-layer', 'visibility', 'none');
+                    }
+                }
             });
 
         // Handle window resize
@@ -754,20 +1670,86 @@ function updateMap(stepIndex) {
 
     console.log('Updating to step:', stepIndex, stepData);
 
-    // Fly to new camera position
+    // Fly to new camera position, prioritizing pitch and bearing from stepData
     map.flyTo({
         center: stepData.center,
         zoom: stepData.zoom,
+        // CRITICAL: Checks for custom pitch/bearing in the data
+        pitch: stepData.pitch !== undefined ? stepData.pitch : 0, 
+        bearing: stepData.bearing !== undefined ? stepData.bearing : 0,
         speed: 1.2,
         curve: 1.42,
         essential: true
     });
 
+    // Explicit layer visibility control for imp-density-layer
+    if (stepIndex == 8) {
+        map.setLayoutProperty('imp-density-layer', 'visibility', 'visible');
+        map.setPaintProperty('imp-density-layer', 'fill-opacity', 0.8);
+        console.log('imp-density-layer explicitly set to visible for step 8');
+    } else {
+        map.setLayoutProperty('imp-density-layer', 'visibility', 'none');
+        console.log('imp-density-layer explicitly set to hidden for step', stepIndex);
+    }
+
+    // Explicit layer visibility control for E-designation layer
+    if (stepIndex == 7) {
+        map.setLayoutProperty('E-designation', 'visibility', 'visible');
+        map.setPaintProperty('E-designation', 'line-opacity', 1.0);
+        console.log('E-designation explicitly set to visible for step 7');
+    } else {
+        map.setLayoutProperty('E-designation', 'visibility', 'none');
+        console.log('E-designation explicitly set to hidden for step', stepIndex);
+    }
+
+    // Explicit layer visibility control for residential-diagonal-layer
+    if (stepIndex == 15) {
+        // Step 15 (scroll 16) should show the diagonal layer
+        console.log('residential-diagonal-layer allowed for step 15');
+    } else {
+        // All other steps should hide the diagonal layer
+        if (map.getLayer('residential-diagonal-layer')) {
+            map.setLayoutProperty('residential-diagonal-layer', 'visibility', 'none');
+            console.log('residential-diagonal-layer explicitly set to hidden for step', stepIndex);
+        }
+    }
+
     // Update layer visibility and opacity
     stepData.layers.forEach(([layerId, visibility, opacity]) => {
         if (map.getLayer(layerId)) {
+            // Debug logging for asthma-index-layer
+            if (layerId === 'asthma-index-layer') {
+                console.log(`Asthma Index Layer: visibility=${visibility}, opacity=${opacity}`);
+            }
+            
             // Update visibility
             map.setLayoutProperty(layerId, 'visibility', visibility);
+
+            // Explicit control for E-designation layer visibility
+            if (layerId === 'E-designation') {
+                console.log('Processing E-designation layer - stepIndex:', stepIndex, 'visibility:', visibility);
+                if (stepIndex == 7) {
+                    map.setLayoutProperty('E-designation', 'visibility', 'visible');
+                    map.setPaintProperty('E-designation', 'line-opacity', 1.0);
+                    console.log('E-designation layer set to visible for step 7');
+                } else {
+                    map.setLayoutProperty('E-designation', 'visibility', 'none');
+                    console.log('E-designation layer set to hidden for step', stepIndex);
+                }
+            }
+
+            // Explicit control for imp-density-layer visibility
+            if (layerId === 'imp-density-layer') {
+                console.log('Processing imp-density-layer - stepIndex:', stepIndex, 'visibility:', visibility);
+                if (stepIndex == 8) {
+                    map.setLayoutProperty('imp-density-layer', 'visibility', 'visible');
+                    map.setPaintProperty('imp-density-layer', 'fill-opacity', 0.8);
+                    console.log('imp-density-layer set to visible for step 8');
+                } else {
+                    map.setLayoutProperty('imp-density-layer', 'visibility', 'none');
+                    console.log('imp-density-layer set to hidden for step', stepIndex);
+                }
+            }
 
             // Only update opacity for visible layers
             if (visibility === 'visible' && opacity !== null && opacity !== undefined) {
@@ -784,6 +1766,9 @@ function updateMap(stepIndex) {
                 if (opacityProp) {
                     try {
                         map.setPaintProperty(layerId, opacityProp, opacity);
+                        if (layerId === 'asthma-index-layer') {
+                            console.log(`Asthma Index Layer: set ${opacityProp} to ${opacity}`);
+                        }
                     } catch (error) {
                         console.warn(`Could not set ${opacityProp} for layer ${layerId}:`, error);
                     }
@@ -793,4 +1778,100 @@ function updateMap(stepIndex) {
             console.warn(`Layer ${layerId} not found in map`);
         }
     });
+
+    // Special handling for step 7: change traffic hotspot colors to grey (after layer updates)
+    console.log('Checking stepIndex:', stepIndex, 'for traffic hotspot color change');
+    if (stepIndex == 7) {
+        // Check if traffic-hotspots-layer exists and should be visible in step 7
+        if (map.getLayer('traffic-hotspots-layer')) {
+            // Check step data to see if traffic-hotspots-layer should be visible
+            const trafficStepData = stepData.layers.find(([layerId]) => layerId === 'traffic-hotspots-layer');
+            console.log('Step 7 traffic data found:', trafficStepData);
+            if (trafficStepData && trafficStepData[1] === 'visible') {
+                console.log('Step 7: Applying grey colors to traffic hotspots');
+                map.setPaintProperty('traffic-hotspots-layer', 'heatmap-color', [
+                    'interpolate',
+                    ['linear'],
+                    ['heatmap-density'],
+                    0, 'rgba(128, 128, 128, 0)',        // Grey - fade to transparent
+                    0.2, 'rgba(128, 128, 128, 0.4)',     // Grey - very light fade
+                    0.4, 'rgba(105, 105, 105, 0.6)',     // Darker grey - medium fade
+                    0.6, 'rgba(85, 85, 85, 0.8)',        // Dark grey - stronger fade
+                    0.8, 'rgba(64, 64, 64, 1.0)',        // Dark grey - full opacity
+                    0.9, 'rgba(45, 45, 45, 1.0)',        // Very dark grey core
+                    1, 'rgba(32, 32, 32, 1.0)'           // Darkest grey core
+                ]);
+                console.log('Step 7: Traffic hotspot colors changed to grey');
+            } else {
+                console.log('Step 7: Traffic hotspot layer not visible in step data');
+            }
+        } else {
+            console.log('Step 7: Traffic hotspot layer not found');
+        }
+
+        // Special handling for step 7: change park lots to bright grey with white stroke
+        if (map.getLayer('park-lots-layer')) {
+            const parkStepData = stepData.layers.find(([layerId]) => layerId === 'park-lots-layer');
+            if (parkStepData && parkStepData[1] === 'visible') {
+                console.log('Step 7: Applying bright grey fill and white stroke to park lots');
+                map.setPaintProperty('park-lots-layer', 'fill-color', '#D3D3D3'); // Bright grey
+                map.setPaintProperty('park-lots-layer', 'fill-outline-color', '#FFFFFF'); // White stroke
+                console.log('Step 7: Park lots colors changed to bright grey with white stroke');
+            }
+        }
+
+        // Special handling for step 7: change freight routes to thicker black strokes
+        if (map.getLayer('freight-routes-layer')) {
+            const freightStepData = stepData.layers.find(([layerId]) => layerId === 'freight-routes-layer');
+            if (freightStepData && freightStepData[1] === 'visible') {
+                console.log('Step 7: Applying thicker black strokes to freight routes');
+                map.setPaintProperty('freight-routes-layer', 'line-color', '#000000'); // Black
+                map.setPaintProperty('freight-routes-layer', 'line-width', 4); // Thicker stroke
+                console.log('Step 7: Freight routes changed to thicker black strokes');
+            }
+        }
+
+    } else {
+        // Restore original red colors for all other steps
+        if (map.getLayer('traffic-hotspots-layer')) {
+            map.setPaintProperty('traffic-hotspots-layer', 'heatmap-color', [
+                'interpolate',
+                ['linear'],
+                ['heatmap-density'],
+                0, 'rgba(225, 6, 0, 0)',        // #e10600 - fade to transparent
+                0.2, 'rgba(210, 8, 5, 0.4)',     // #d20805 - light fade
+                0.4, 'rgba(183, 12, 15, 0.6)',    // #b70c0f - medium fade
+                0.6, 'rgba(165, 15, 21, 0.8)',    // #a50f15 - stronger fade
+                0.8, 'rgba(255, 0, 0, 1.0)',      // #ff0000 - strong fade, full opacity
+                0.9, 'rgba(220, 20, 20, 1.0)',    // shaded red core
+                1, 'rgba(200, 40, 40, 1.0)'       // small shaded red core
+            ]);
+            console.log('Step', stepIndex, ': Traffic hotspot colors restored to red');
+        }
+
+    // Special park color control for step 8 (after all layer processing)
+    if (stepIndex == 8) {
+        if (map.getLayer('park-lots-layer')) {
+            map.setPaintProperty('park-lots-layer', 'fill-color', '#FFFFFF'); // White for step 8
+            map.setPaintProperty('park-lots-layer', 'fill-outline-color', '#FFFFFF'); // White stroke
+            console.log('Step 8: Park lots set to white with white stroke');
+        }
+    }
+
+    // Restore original park lots colors for all other steps (except step 8)
+    if (stepIndex != 8) {
+        if (map.getLayer('park-lots-layer')) {
+            map.setPaintProperty('park-lots-layer', 'fill-color', '#FBDBD9'); // Original light pink
+            map.setPaintProperty('park-lots-layer', 'fill-outline-color', '#E47675'); // Original darker pink
+            console.log('Step', stepIndex, ': Park lots colors restored to original pink');
+        }
+    }
+
+        // Restore original freight routes colors for all other steps
+        if (map.getLayer('freight-routes-layer')) {
+            map.setPaintProperty('freight-routes-layer', 'line-color', '#e10600'); // Original red
+            map.setPaintProperty('freight-routes-layer', 'line-width', 1); // Original width
+            console.log('Step', stepIndex, ': Freight routes restored to original red');
+        }
+    }
 }

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Residential Area Distribution</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        h1 {
+            margin: 0 0 10px 0;
+            color: #2d3748;
+            font-size: 28px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .stat-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid;
+        }
+        
+        .stat-card.grey-city {
+            border-left-color: #4a5568;
+        }
+        
+        .stat-card.outside {
+            border-left-color: #48bb78;
+        }
+        
+        .stat-card.total {
+            border-left-color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #718096;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .stat-detail {
+            font-size: 13px;
+            color: #a0aec0;
+        }
+        
+        .legend-custom {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .legend-text {
+            font-size: 14px;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Residential Area Distribution</h1>
+        <p class="subtitle">Grey City vs Outside Grey City Analysis</p>
+        
+        <div class="chart-container">
+            <canvas id="pieChart"></canvas>
+        </div>
+        
+        <div class="legend-custom">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4a5568;"></div>
+                <div class="legend-text">Residential in Grey City</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #48bb78;"></div>
+                <div class="legend-text">Residential Outside Grey City</div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card grey-city">
+                <div class="stat-label">Residential in Grey City</div>
+                <div class="stat-value">40.87%</div>
+                <div class="stat-detail">23,565,633.09 sq units</div>
+            </div>
+            
+            <div class="stat-card outside">
+                <div class="stat-label">Residential Outside Grey City</div>
+                <div class="stat-value">59.13%</div>
+                <div class="stat-detail">34,097,186.08 sq units</div>
+            </div>
+            
+            <div class="stat-card total">
+                <div class="stat-label">Total Residential Area</div>
+                <div class="stat-value">100.00%</div>
+                <div class="stat-detail">57,662,819.17 sq units</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        
+        const data = {
+            labels: [
+                'Residential in Grey City (40.87%)',
+                'Residential Outside Grey City (59.13%)'
+            ],
+            datasets: [{
+                data: [23565633.09, 34097186.08],
+                backgroundColor: [
+                    '#4a5568',  // Grey for Grey City
+                    '#48bb78'   // Green for Outside
+                ],
+                borderColor: '#ffffff',
+                borderWidth: 3,
+                hoverOffset: 15
+            }]
+        };
+        
+        const config = {
+            type: 'pie',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const percentage = context.dataset.data[context.dataIndex] / 57662819.17 * 100;
+                                return [
+                                    `Area: ${value.toLocaleString()} sq units`,
+                                    `Percentage: ${percentage.toFixed(2)}%` 
+                                ];
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        };
+        
+        new Chart(ctx, config);
+    </script>
+</body>
+</html>

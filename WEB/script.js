@@ -1064,7 +1064,7 @@ const storySteps = {
             ['freight-zones-layer', 'none', 0], // Freight Zones (Orange Lines)
             ['traffic-hotspots-layer', 'visible', 0.8], // Traffic Hotspots (Heatmap)
             ['junction-hotspots-layer', 'visible', 0.8], // Idling Hotspots (Heatmap)
-            ['vulnerable-facilities-layer', 'none', 0], // Facilities (White Dots)
+            ['vulnerable-facilities-layer', 'none', 0], // (hidden)
             ['residential-layer', 'none', 0], // Residential Areas (Hidden)
             ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]

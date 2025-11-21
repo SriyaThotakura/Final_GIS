@@ -1058,13 +1058,13 @@ const storySteps = {
         zoom: 9,
         layers: [
             ['park-lots-layer', 'visible', 1.0], // Parks (Full opacity)
-            ['asthma-index-layer', 'visible', 0.7], // Asthma (Choropleth)
+            ['asthma-index-layer', 'none', 0], // Asthma (Choropleth)
             ['asthma-hex-fill', 'none', 0], // Asthma Hex (Hidden)
-            ['freight-routes-layer', 'visible', 0.8], // Freight Routes (Red Lines)
-            ['freight-zones-layer', 'visible', 0.7], // Freight Zones (Orange Lines)
+            ['freight-routes-layer', 'none', 0], // Freight Routes (Red Lines)
+            ['freight-zones-layer', 'none', 0], // Freight Zones (Orange Lines)
             ['traffic-hotspots-layer', 'visible', 0.8], // Traffic Hotspots (Heatmap)
             ['junction-hotspots-layer', 'visible', 0.8], // Idling Hotspots (Heatmap)
-            ['vulnerable-facilities-layer', 'visible', 1.0], // Facilities (White Dots)
+            ['vulnerable-facilities-layer', 'none', 0], // Facilities (White Dots)
             ['residential-layer', 'none', 0], // Residential Areas (Hidden)
             ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
@@ -1080,7 +1080,7 @@ const storySteps = {
             ['freight-zones-layer', 'visible', 0.7],
             ['traffic-hotspots-layer', 'visible', 0.8],
             ['junction-hotspots-layer', 'visible', 0.8],
-            ['vulnerable-facilities-layer', 'visible', 1.0],
+            ['vulnerable-facilities-layer', 'none', 0],
             ['residential-layer', 'none', 0],
             ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]

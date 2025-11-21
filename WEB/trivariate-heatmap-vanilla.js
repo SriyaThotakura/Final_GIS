@@ -76,7 +76,7 @@ function createTrivariateHeatmap() {
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   headerRow.innerHTML = `
-    <th class="p-4 text-left font-light border-b" style="font-family: Arial, sans-serif; color: #ccc; border-color: rgba(255, 255, 255, 0.2);">
+    <th class="p-4 text-left font-light border-b" style="color: #ccc; border-color: rgba(255, 255, 255, 0.2); font-weight: 600;">
       <div class="text-base">CVI Vulnerability →</div>
       <div class="text-xs font-normal mt-1" style="color: #999;">Asthma + Canopy ↓</div>
     </th>
@@ -85,9 +85,9 @@ function createTrivariateHeatmap() {
   cviLevels.forEach(cvi => {
     const th = document.createElement('th');
     th.className = 'p-4 text-center font-light border-b';
-    th.style.fontFamily = 'Arial, sans-serif';
     th.style.color = '#ccc';
     th.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+    th.style.fontWeight = '600';
     th.innerHTML = `<div class="text-base">${cvi}</div>`;
     headerRow.appendChild(th);
   });
@@ -151,9 +151,9 @@ function createTrivariateHeatmap() {
   
   const legendTitle = document.createElement('h4');
   legendTitle.style.margin = '0 0 1rem 0';
-  legendTitle.style.color = '#E10600';
-  legendTitle.style.fontSize = '1.1em';
-  legendTitle.style.fontFamily = 'Arial, sans-serif';
+  legendTitle.style.color = '#fff';
+  legendTitle.style.fontSize = '1em';
+  legendTitle.style.fontWeight = '600';
   legendTitle.textContent = 'Trivariate Analysis Legend';
   legendSection.appendChild(legendTitle);
   
@@ -190,7 +190,7 @@ function createTrivariateHeatmap() {
     itemDiv.innerHTML = `
       <div class="legend-color" style="background: ${item.gradient}; height: 20px; width: 20px; border: 1px solid rgba(255, 255, 255, 0.3);"></div>
       <div class="legend-label" style="font-size: 0.9em; line-height: 1.3; color: #ccc;">
-        <strong style="color: #fff;">${item.title}</strong><br>
+        <strong style="color: #fff; font-weight: 600;">${item.title}</strong><br>
         <span style="font-size: 0.8em;">${item.description}</span>
       </div>
     `;
@@ -205,7 +205,7 @@ function createTrivariateHeatmap() {
   prioritySection.style.marginTop = '1rem';
   prioritySection.style.paddingTop = '0.5rem';
   prioritySection.style.borderTop = '1px solid rgba(255, 255, 255, 0.2)';
-  prioritySection.style.fontSize = '0.8em';
+  prioritySection.style.fontSize = '12px';
   prioritySection.style.lineHeight = '1.4';
   prioritySection.style.color = '#ccc';
   prioritySection.innerHTML = `
@@ -227,10 +227,31 @@ function createTrivariateHeatmap() {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('trivariate-heatmap');
+  const container = document.getElementById('trivariate-heatmap-left');
   if (container) {
     const heatmap = createTrivariateHeatmap();
     container.appendChild(heatmap);
+  }
+  
+  // Show/hide heatmap based on scroll position
+  const scroll15Step = document.getElementById('scroll-15-trivariate-solutions');
+  const heatmapContainer = document.getElementById('trivariate-heatmap-left');
+  
+  // Use Intersection Observer to detect when scroll 15 is active
+  if (scroll15Step && heatmapContainer) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          heatmapContainer.style.display = 'block';
+        } else {
+          heatmapContainer.style.display = 'none';
+        }
+      });
+    }, {
+      threshold: 0.5 // Show when 50% of the element is visible
+    });
+    
+    observer.observe(scroll15Step);
   }
 });
 

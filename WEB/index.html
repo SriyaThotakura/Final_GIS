@@ -9,6 +9,9 @@
 </head>
 
 <body>
+    <!-- Extreme Left Trivariate Heatmap -->
+    <div id="trivariate-heatmap-left" style="position: fixed; top: 0; left: 0; width: 400px; height: 100vh; background: rgba(0, 0, 0, 0.9); z-index: 1000; overflow: auto; padding: 1rem; display: none;"></div>
+    
     <div id="story-container"> 
         <div id="map"></div> 
         <div id="features">
@@ -24,37 +27,6 @@
                     <h2>Chapter 1: HUMAN CITY</h2>
                     <p><strong>Problem:</strong> Establishes the city-wide extent of air quality risk and exposure.</p>
                     <p><strong>Description:</strong> This is an initial composite view showing all problem layers overlaid: major <strong>Freight Routes</strong> , <strong>Junction Hotspots</strong>, high <strong>Asthma Index Rates</strong>, and <strong>Vulnerable Facilities</strong>.</p>
-                </div>
-                <div class="legend" id="legend-2">
-                    <h4>Map Legend</h4>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #8B0000;"></div>
-                        <div class="legend-label">Asthma Index</div>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #FFA500; width: 40px; height: 3px; margin-top: 8px;"></div>
-                        <div class="legend-label">Freight Routes</div>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #FF8C00; width: 20px; height: 20px;"></div>
-                        <div class="legend-label">Freight Zones</div>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #FF0000;"></div>
-                        <div class="legend-label">Traffic Hotspots</div>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #DC143C;"></div>
-                        <div class="legend-label">Junction Hotspots</div>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #00FF00; border: 1px solid #fff; width: 20px; height: 20px;"></div>
-                        <div class="legend-label">Vulnerable Facilities</div>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #228B22;"></div>
-                        <div class="legend-label">Park Lots</div>
-                    </div>
                 </div>
             </section>
 
@@ -306,11 +278,11 @@
                 <div class="legend" id="legend-11">
                     <h4>Intervention Planning Legend</h4>
                     <div class="legend-item">
-                        <div class="legend-color" style="background: #FFD500; height: 20px; width: 20px; opacity: 1.0;"></div>
+                        <div class="legend-color" style="background: #FF6B6B; height: 20px; width: 20px; opacity: 1.0;"></div>
                         <div class="legend-label">Intervention Zones (Primary)</div>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background: #8B0000; height: 20px; width: 20px; opacity: 0.3;"></div>
+                        <div class="legend-color" style="background: linear-gradient(to right, #8B0000, #E10600); height: 20px; width: 20px; opacity: 0.3;"></div>
                         <div class="legend-label">CVI Problem Areas</div>
                     </div>
                     <div class="legend-item">
@@ -318,11 +290,11 @@
                         <div class="legend-label">Freight Routes (Background)</div>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background: #00FF00; border: 1px solid #fff; width: 16px; height: 16px; opacity: 0.4;"></div>
+                        <div class="legend-color" style="background: #ffffff; border: 1px solid #ccc; width: 16px; height: 16px; opacity: 0.4;"></div>
                         <div class="legend-label">Vulnerable Facilities</div>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background: #228B22; width: 20px; height: 20px; opacity: 0.3;"></div>
+                        <div class="legend-color" style="background: #FBDBD9; width: 20px; height: 20px; opacity: 0.3;"></div>
                         <div class="legend-label">Park Areas</div>
                     </div>
                 </div>
@@ -336,16 +308,9 @@
                 <div class="legend" id="legend-12">
                     <h4>3D Resilience Legend</h4>
                     <div class="legend-item">
-                        <div class="legend-color" style="background: #8B0000; height: 20px; width: 20px;"></div>
-                        <div class="legend-label">Problem Areas (High CVI)</div>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #FFD500; height: 20px; width: 20px;"></div>
+                        <div class="legend-color" style="background: #FF6B6B; height: 20px; width: 20px; opacity: 0.8;"></div>
                         <div class="legend-label">Intervention Zones</div>
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #00A637; height: 20px; width: 20px;"></div>
-                        <div class="legend-label">Canopy Gain Areas</div>
                 </div>
             </section>
 
@@ -353,16 +318,15 @@
                 <div class="narrative">
                     <h2>Resilience Solutions: Canopy Gain Areas</h2>
                     <p><strong>Solution:</strong> Final implementation of green infrastructure canopy gain areas for climate resilience.</p>
-                    <p><strong>Description:</strong> This 2D view shows the specific areas targeted for canopy enhancement, providing a clear roadmap for implementing nature-based solutions to address climate vulnerability.</p>
                 </div>
                 <div class="legend" id="legend-13">
                     <h4>Resilience Solutions Legend</h4>
                     <div class="legend-item">
-                        <div class="legend-color" style="background: #00A637; height: 20px; width: 20px;"></div>
+                        <div class="legend-color" style="background: #ff9f9f; height: 20px; width: 20px; opacity: 0.5;"></div>
                         <div class="legend-label">Canopy Gain Areas</div>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background: #228B22; height: 20px; width: 20px;"></div>
+                        <div class="legend-color" style="background: #a5a5a5;; height: 20px; width: 20px;"></div>
                         <div class="legend-label">Existing Parks</div>
                     </div>
                     <div class="legend-note">Green areas represent priority zones for tree canopy expansion</div>
@@ -450,26 +414,14 @@
             </section>
 
             <section class="step" id="scroll-15-trivariate-solutions" data-step="14">
-                <div class="narrative">
-                    <h2>Secondary Intervention: Residential Trivariate Analysis</h2>
-                    <p><strong>Analysis:</strong> Advanced three-dimensional analysis incorporating asthma rates, canopy coverage, and overall vulnerability (CVI).</p>
-                    <p><strong>Description:</strong> This trivariate visualization provides comprehensive insight by combining health indicators (asthma), environmental factors (canopy), and social vulnerability (CVI) through color intensity and opacity variations.</p>
+                <div class="step-content" style="display: flex; gap: 2rem; align-items: flex-start;">
+                    <div class="narrative" style="flex: 0 0 400px;">
+                        <h2>Secondary Intervention: Residential Trivariate Analysis</h2>
+                        <p><strong>Analysis:</strong> Advanced three-dimensional analysis incorporating asthma rates, canopy coverage, and overall vulnerability (CVI).</p>
+                        <p><strong>Description:</strong> This trivariate visualization provides comprehensive insight by combining health indicators (asthma), environmental factors (canopy), and social vulnerability (CVI) through color intensity and opacity variations.</p>
+                    </div>
                 </div>
-                <div id="trivariate-heatmap"></div>
                 <div class="legend" id="legend-15">
-                    <h4>Trivariate Analysis Legend</h4>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #808080;"></span>
-                        <span class="legend-label">Low Vulnerability</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #228B22;"></span>
-                        <span class="legend-label">Medium Vulnerability</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #8B4513;"></span>
-                        <span class="legend-label">High Vulnerability</span>
-                    </div>
                 </div>
             </section>
 

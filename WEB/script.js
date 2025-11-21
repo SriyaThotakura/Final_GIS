@@ -1,6 +1,88 @@
 // Mapbox access token
 mapboxgl.accessToken = 'pk.eyJ1Ijoic3JpeWF0aG90YWt1cmEiLCJhIjoiY21kYzhuMG1hMTVrbjJpcHpnZ3Awdjc1dCJ9.bEGwdPmOH5kVaT9RWduC5Q';
 
+// Aggressive Mapbox analytics blocking
+(function() {
+    // Block XMLHttpRequest to analytics endpoints
+    const originalXHROpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url, ...args) {
+        if (typeof url === 'string' && url.includes('events.mapbox.com')) {
+            // Prevent the request from being sent
+            this._blocked = true;
+            return;
+        }
+        return originalXHROpen.call(this, method, url, ...args);
+    };
+    
+    const originalXHRSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function(data) {
+        if (this._blocked) {
+            return;
+        }
+        return originalXHRSend.call(this, data);
+    }
+    
+    // Block fetch requests to analytics endpoints
+    const originalFetch = window.fetch;
+    window.fetch = function(resource, options) {
+        const url = typeof resource === 'string' ? resource : resource.url;
+        if (typeof url === 'string' && url.includes('events.mapbox.com')) {
+            return Promise.resolve(new Response(null, { status: 204, statusText: 'No Content' }));
+        }
+        return originalFetch.call(this, resource, options);
+    };
+})();
+
+// Suppress Mapbox analytics errors in console
+const originalConsoleError = console.error;
+console.error = function(...args) {
+    const message = args[0];
+    if (typeof message === 'string' && 
+        (message.includes('events.mapbox.com') || 
+         message.includes('ERR_BLOCKED_BY_CLIENT') ||
+         (message.includes('POST') && message.includes('events.mapbox.com')) ||
+         (message.includes('ajax.js:149') && message.includes('events.mapbox.com')))) {
+        return; // Suppress Mapbox analytics errors
+    }
+    // Also suppress any error objects that contain Mapbox analytics URLs
+    if (message && typeof message === 'object' && message.stack && 
+        message.stack.includes('events.mapbox.com')) {
+        return;
+    }
+    return originalConsoleError.apply(console, args);
+};
+
+// Also suppress any console.log messages that contain analytics errors
+const originalConsoleLog = console.log;
+console.log = function(...args) {
+    const message = args[0];
+    if (typeof message === 'string' && 
+        (message.includes('events.mapbox.com') || 
+         message.includes('ERR_BLOCKED_BY_CLIENT') ||
+         (message.includes('ajax.js:149') && message.includes('events.mapbox.com')))) {
+        return; // Suppress Mapbox analytics errors in log too
+    }
+    return originalConsoleLog.apply(console, args);
+};
+
+// Also suppress Mapbox analytics warnings
+const originalConsoleWarn = console.warn;
+console.warn = function(...args) {
+    const message = args[0];
+    if (typeof message === 'string' && 
+        (message.includes('events.mapbox.com') || 
+         message.includes('ERR_BLOCKED_BY_CLIENT') ||
+         message.includes('setLight') && message.includes('deprecated') ||
+         message.includes('setLights not supported') ||
+         message.includes('prefer using map.setLights'))) {
+        return; // Suppress Mapbox warnings
+    }
+    return originalConsoleWarn.apply(console, args);
+};
+
+// Global variables for scrollama
+let currentLegend = null;
+
 // Initialize the map
 const map = new mapboxgl.Map({
     container: 'map',
@@ -10,7 +92,18 @@ const map = new mapboxgl.Map({
     pitch: 0,
     bearing: 0,
     hash: false,
-    interactive: true
+    interactive: true,
+    // Disable zoom controls and gestures
+    scrollZoom: false,
+    boxZoom: false,
+    doubleClickZoom: false,
+    dragZoom: false,
+    touchZoomRotate: false,
+    // Hide zoom controls
+    zoomControl: false,
+    // Disable Mapbox analytics to prevent ERR_BLOCKED_BY_CLIENT errors
+    collectResourceTiming: false,
+    fadeDuration: 0
 });
 
 // Show loading state
@@ -23,20 +116,26 @@ document.body.appendChild(loadingEl);
 map.on('load', () => {
     console.log("Map has loaded! Configuring map...");
 
-    // Set up map lighting
-    map.setLight({
-        // Directional Light (creates strong shadows)
-        'anchor': 'viewport', // Light direction remains fixed relative to the screen
-        'color': '#FFFFFF',
-        'intensity': 0.6, // Overall brightness
-        'position': [135, 60, 0] // Direction: [azimuth (0=N, 90=E), pitch (0=flat, 90=overhead), range]
-    }, 
-    // Ambient Light (subtle fill light for all surfaces)
-    {
-        'anchor': 'viewport',
-        'color': '#AAAAAA', // Light gray ambient color
-        'intensity': 0.4
-    });
+    // Set up map lighting using the new setLights API
+    try {
+        map.setLights({
+            'flat': {
+                'anchor': 'viewport',
+                'color': '#FFFFFF',
+                'intensity': 0.6,
+                'position': [135, 60, 0]
+            }
+        });
+    } catch (e) {
+        // Fallback to deprecated setLight if setLights fails
+        console.warn('setLights not supported, falling back to setLight');
+        map.setLight({
+            'anchor': 'viewport',
+            'color': '#FFFFFF',
+            'intensity': 0.6,
+            'position': [135, 60, 0]
+        });
+    }
 
     console.log("Map lighting configured. Adding data layers...");
 
@@ -946,7 +1045,8 @@ map.addLayer({
 
     // Initialize scrollytelling after a longer delay to ensure all layers are loaded
     setTimeout(() => {
-        initScrollytelling();
+        // Scrollama is now initialized in the map.on('load') event
+        console.log('Map and layers fully loaded');
     }, 1500);
 });
 
@@ -1256,305 +1356,300 @@ const storySteps = {
     }
 };
 
-// Initialize scrollytelling
-function initScrollytelling() {
-    console.log('Initializing Scrollama...');
-    
+// Initialize Scrollama
+function initializeScrollama() {
     try {
-        // Check if scrollama is available
-        if (typeof scrollama === 'undefined') {
-            throw new Error('Scrollama not loaded. Check if the script is properly included.');
-        }
+        const scroller = scrollama();
 
-        const steps = document.querySelectorAll('.step');
-        console.log('Found', steps.length, 'step elements');
-        
-        if (steps.length === 0) {
-            throw new Error('No .step elements found in the document');
-        }
+        scroller
+            .setup({
+                step: '.step',
+                offset: 0.5,
+                progress: true,
+                debug: false
+            })
+            .onStepEnter(response => {
+                // Validate response object (direction can be undefined on first load)
+                if (!response || !response.element || typeof response.index !== 'number') {
+                    console.error('Invalid scrollama response:', response);
+                    return;
+                }
 
-        // Scrollama event handlers
-        function handleStepEnter(response) {
-            const stepIndex = response.index;
-            
-            // Hide all legends first
-            const allLegends = document.querySelectorAll('.legend');
-            allLegends.forEach(legend => {
-                legend.classList.remove('active');
-            });
-            
-            // Show legend for current step if it exists
-            const stepLegendId = `legend-${stepIndex + 1}`;
-            const currentLegend = document.getElementById(stepLegendId);
-            if (currentLegend) {
-                currentLegend.classList.add('active');
+                // Handle legend switching
+                if (currentLegend) {
+                    currentLegend.classList.remove('active');
+                }
+                
+                const legendId = 'legend-' + (response.index + 1);
+                currentLegend = document.getElementById(legendId);
+                if (currentLegend) {
+                    currentLegend.classList.add('active');
+                }
+                    
+                // Hide previous layers when scrolling to a new one
+                if (map && map.getLayer) {
+                    try {
+                        if (map.getLayer('asthma-hex-fill')) {
+                            map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
+                        }
+                        if (map.getLayer('cvi-3d-extrusion')) {
+                            map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
+                        }
+                        if (map.getLayer('intervention-3d-extrusion')) {
+                            map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
+                        }
+                        if (map.getLayer('resilience-fill')) {
+                            map.setLayoutProperty('resilience-fill', 'visibility', 'none');
+                        }
+                        if (map.getLayer('resilience-bivariate-fill')) {
+                            map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'none');
+                        }
+                        if (map.getLayer('resilience-trivariate-fill')) {
+                            map.setLayoutProperty('resilience-trivariate-fill', 'visibility', 'none');
+                        }
+                        if (map.getLayer('resilience-max-priority-fill')) {
+                            map.setLayoutProperty('resilience-max-priority-fill', 'visibility', 'none');
+                        }
+                    } catch (layerError) {
+                        console.warn('Error hiding layers:', layerError);
+                    }
+                }
+
+                console.log('Entering step:', response.index, response.element.id);
+                const stepDataIndex = response.element.getAttribute('data-step');
+                
+                if (!stepDataIndex) {
+                    console.warn('Step element missing data-step attribute:', response.element);
+                    return;
+                }
+                
+                // Update active step styling
+                document.querySelectorAll('.step').forEach(el => el.classList.remove('is-active'));
+                response.element.classList.add('is-active');
+
+        if (response.element.id === 'scroll-5-cvi-step') { 
+            // 1. Reveal the 3D extrusion layer
+            if (map.getLayer('cvi-3d-extrusion')) {
+                map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
+                map.setPaintProperty('cvi-3d-extrusion', 'fill-extrusion-opacity', 0.9);
             }
             
-            // Hide previous layers when scrolling to a new one
+            // 2. Set the 3D View (Camera Pitch and Bearing)
+            map.flyTo({
+                center: [-73.95, 40.78], // Focus over central NYC
+                pitch: 80,                // Near-vertical view (almost straight down)
+                bearing: -45,             // Diagonal angle for better depth perception
+                zoom: 10.5,
+                duration: 2500,           // Slightly longer for dramatic effect
+                curve: 1.2,               // More pronounced curve in flight path
+                essential: true
+            });
+            } else if (response.element.id === 'scroll-8-imp-density-step') { 
+            console.log('Entering Scroll 8: Impervious Surface Density Analysis');
+            
+            // Show impervious density layer
+            if (map.getLayer('imp-density-layer')) {
+                map.setLayoutProperty('imp-density-layer', 'visibility', 'visible');
+                map.setPaintProperty('imp-density-layer', 'fill-opacity', 0.8);
+            }
+
+                // The map.flyTo is called *outside* this block using the flat 2D pitch:0/bearing:0 from the stepData!
+        } else if (response.element.id === 'scroll-11-resilience-3d-step') {
+            // 1. Show CVI Problem layer (red pillars) for context
+            if (map.getLayer('cvi-3d-extrusion')) {
+                map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
+            }
+            
+            // 2. Show Intervention layer (yellow pillars)
+            if (map.getLayer('intervention-3d-extrusion')) {
+                map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'visible');
+            }
+            
+            // 3. Show Resilience solutions layer
+            if (map.getLayer('resilience-fill')) {
+                map.setLayoutProperty('resilience-fill', 'visibility', 'visible');
+            }
+            
+            // 4. Maintain same 3D camera view as scroll 8
+            map.flyTo({
+                pitch: 50,         // Same pitch as scroll 8
+                bearing: -30,      // Same bearing as scroll 8
+                zoom: 12,
+                duration: 1500
+            });
+        } else if (response.element.id === 'scroll-13-resilience-step') {
+            console.log('Entering Scroll 10: Final Resilience Solution');
+            
+            // 1. Hide ALL 3D problem/solution layers (the transition from drama to calm)
+            if (map.getLayer('cvi-3d-extrusion')) {
+                map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
+            }
+            if (map.getLayer('intervention-3d-extrusion')) {
+                map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
+            }
+            if (map.getLayer('3d-buildings')) { // Hide the base map buildings too
+                map.setLayoutProperty('3d-buildings', 'visibility', 'none');
+            }
+
+            // 2. Reveal the new 2D Solution Layer
+            if (map.getLayer('resilience-fill')) {
+                map.setLayoutProperty('resilience-fill', 'visibility', 'visible');
+            }
+
+            // 3. Transition to the 2D, overhead "Paper Map" view
+            map.flyTo({
+                center: [-73.95, 40.75], 
+                pitch: 0,             // Crucial: Returns to 2D
+                bearing: 0,           // Removes rotation
+                zoom: 11,
+                duration: 3000
+            });
+            
+            // Optional: Switch to a light map style for the "paper map" effect
+            // map.setStyle('mapbox://styles/mapbox/light-v11'); 
+        } else if (response.element.id === 'scroll-14-secondary-intervention-step') {
+            console.log('Entering Scroll 11: Secondary Intervention - Residential Bivariate Analysis');
+            
+            // 1. Hide ALL 3D and other layers to focus on bivariate
+            if (map.getLayer('cvi-3d-extrusion')) {
+                map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
+            }
+            if (map.getLayer('intervention-3d-extrusion')) {
+                map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
+            }
+            if (map.getLayer('3d-buildings')) {
+                map.setLayoutProperty('3d-buildings', 'visibility', 'none');
+            }
+            if (map.getLayer('resilience-fill')) {
+                map.setLayoutProperty('resilience-fill', 'visibility', 'none');
+            }
+            
+            // 2. Reveal the bivariate layer
+            if (map.getLayer('resilience-bivariate-fill')) {
+                map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'visible');
+            }
+            
+            // 3. Fly to South Bronx residential areas for detailed analysis
+            map.flyTo({
+                center: [-73.88, 40.85],
+                pitch: 0,             // 2D view for bivariate analysis
+                bearing: 0,           // North-up orientation
+                zoom: 12,
+                duration: 2000
+            }); 
+        } else if (response.element.id === 'scroll-15-trivariate-solutions') {
+            // Hide all previous layers
             if (map.getLayer('asthma-hex-fill')) {
                 map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
             }
             if (map.getLayer('cvi-3d-extrusion')) {
                 map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
             }
-            // HIDE THE NEW INTERVENTION LAYER HERE
             if (map.getLayer('intervention-3d-extrusion')) {
                 map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
             }
-            // HIDE THE RESILIENCE LAYER HERE
             if (map.getLayer('resilience-fill')) {
                 map.setLayoutProperty('resilience-fill', 'visibility', 'none');
             }
-            // HIDE THE BIVARIATE LAYER HERE
             if (map.getLayer('resilience-bivariate-fill')) {
                 map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'none');
             }
-            // HIDE THE TRIVARIATE LAYER HERE
             if (map.getLayer('resilience-trivariate-fill')) {
                 map.setLayoutProperty('resilience-trivariate-fill', 'visibility', 'none');
             }
-            // HIDE THE MAX PRIORITY LAYER HERE
+            if (map.getLayer('city-type-fill')) {
+                map.setLayoutProperty('city-type-fill', 'visibility', 'none');
+            }
+
+            // Fade residential and park layers for context
+            if (map.getLayer('residential-fill')) {
+                map.setPaintProperty('residential-fill', 'fill-opacity', 0.3);
+            }
+            if (map.getLayer('park-fill')) {
+                map.setPaintProperty('park-fill', 'fill-opacity', 0.3);
+            }
+
+            // Initialize vanilla JavaScript heatmap
+            const container = document.getElementById('trivariate-heatmap');
+            if (container && !container.hasChildNodes()) {
+                const heatmap = window.createTrivariateHeatmap();
+                container.appendChild(heatmap);
+            }
+        } else if (response.element.id === 'scroll-16-city-type-step') {
+            console.log('Entering Scroll 15: City Type Analysis');
+            
+            // Hide ALL layers except city type
+            if (map.getLayer('cvi-3d-extrusion')) {
+                map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
+            }
+            if (map.getLayer('intervention-3d-extrusion')) {
+                map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
+            }
+            if (map.getLayer('resilience-fill')) {
+                map.setLayoutProperty('resilience-fill', 'visibility', 'none');
+            }
+            if (map.getLayer('resilience-bivariate-fill')) {
+                map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'none');
+            }
+            if (map.getLayer('resilience-trivariate-fill')) {
+                map.setLayoutProperty('resilience-trivariate-fill', 'visibility', 'none');
+            }
             if (map.getLayer('resilience-max-priority-fill')) {
                 map.setLayoutProperty('resilience-max-priority-fill', 'visibility', 'none');
             }
-
-            console.log('Entering step:', response.index, response.element.id);
-            const stepDataIndex = response.element.getAttribute('data-step');
-            
-            if (!stepDataIndex) {
-                console.warn('Step element missing data-step attribute:', response.element);
-                return;
+            if (map.getLayer('3d-buildings')) {
+                map.setLayoutProperty('3d-buildings', 'visibility', 'none');
             }
-            
-            // Update active step styling
-            document.querySelectorAll('.step').forEach(el => el.classList.remove('is-active'));
-            response.element.classList.add('is-active');
+            if (map.getLayer('residential-layer')) {
+                map.setLayoutProperty('residential-layer', 'visibility', 'visible');
+                map.setPaintProperty('residential-layer', 'fill-opacity', 0.1);
+            }
+            if (map.getLayer('residential-diagonal-layer')) {
+                map.setLayoutProperty('residential-diagonal-layer', 'visibility', 'visible');
+                map.setPaintProperty('residential-diagonal-layer', 'fill-opacity', 0.6);
+            }
+            if (map.getLayer('residential-stroke-layer')) {
+                map.setLayoutProperty('residential-stroke-layer', 'visibility', 'none');
+            }
+            if (map.getLayer('park-lots-layer')) {
+                map.setLayoutProperty('park-lots-layer', 'visibility', 'none');
+            }
+            if (map.getLayer('vulnerable-facilities-layer')) {
+                map.setLayoutProperty('vulnerable-facilities-layer', 'visibility', 'none');
+            }
+            if (map.getLayer('asthma-index-layer')) {
+                map.setLayoutProperty('asthma-index-layer', 'visibility', 'none');
+            }
+            if (map.getLayer('asthma-hex-fill')) {
+                map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
+            }
+            if (map.getLayer('freight-routes-layer')) {
+                map.setLayoutProperty('freight-routes-layer', 'visibility', 'none');
+            }
+            if (map.getLayer('freight-zones-layer')) {
+                map.setLayoutProperty('freight-zones-layer', 'visibility', 'none');
+            }
+            if (map.getLayer('traffic-hotspots-layer')) {
+                map.setLayoutProperty('traffic-hotspots-layer', 'visibility', 'none');
+            }
+            if (map.getLayer('junction-hotspots-layer')) {
+                map.setLayoutProperty('junction-hotspots-layer', 'visibility', 'none');
+            }
 
-            if (response.element.id === 'scroll-5-cvi-step') { 
-                // 1. Reveal the 3D extrusion layer
-                if (map.getLayer('cvi-3d-extrusion')) {
-                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
-                    map.setPaintProperty('cvi-3d-extrusion', 'fill-extrusion-opacity', 0.9);
-                }
-                
-                // 2. Set the 3D View (Camera Pitch and Bearing)
-                map.flyTo({
-                    center: [-73.95, 40.78], // Focus over central NYC
-                    pitch: 80,                // Near-vertical view (almost straight down)
-                    bearing: -45,             // Diagonal angle for better depth perception
-                    zoom: 10.5,
-                    duration: 2500,           // Slightly longer for dramatic effect
-                    curve: 1.2,               // More pronounced curve in flight path
-                    essential: true
-                });
-            } else if (response.element.id === 'scroll-8-intervention-step') { 
-                console.log('Entering Scroll 8: Flat 2D Introduction');
-                
-                // Ensure CVI and Intervention layers are visible
-                if (map.getLayer('cvi-3d-extrusion')) {
-                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
-                }
-                if (map.getLayer('intervention-3d-extrusion')) {
-                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'visible');
-                }
+            // Show ONLY City Type layer
+            if (map.getLayer('city-type-fill')) {
+                map.setLayoutProperty('city-type-fill', 'visibility', 'visible');
+            }
 
-                // The map.flyTo is called *outside* this block using the flat 2D pitch:0/bearing:0 from the stepData!
-            } else if (response.element.id === 'scroll-11-resilience-3d-step') {
-                // 1. Show CVI Problem layer (red pillars) for context
-                if (map.getLayer('cvi-3d-extrusion')) {
-                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'visible');
-                }
-                
-                // 2. Show Intervention layer (yellow pillars)
-                if (map.getLayer('intervention-3d-extrusion')) {
-                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'visible');
-                }
-                
-                // 3. Show Resilience solutions layer
-                if (map.getLayer('resilience-fill')) {
-                    map.setLayoutProperty('resilience-fill', 'visibility', 'visible');
-                }
-                
-                // 4. Maintain same 3D camera view as scroll 8
-                map.flyTo({
-                    pitch: 50,         // Same pitch as scroll 8
-                    bearing: -30,      // Same bearing as scroll 8
-                    zoom: 12,
-                    duration: 1500
-                });
-            } else if (response.element.id === 'scroll-13-resilience-step') {
-                console.log('Entering Scroll 10: Final Resilience Solution');
-                
-                // 1. Hide ALL 3D problem/solution layers (the transition from drama to calm)
-                if (map.getLayer('cvi-3d-extrusion')) {
-                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
-                }
-                if (map.getLayer('intervention-3d-extrusion')) {
-                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
-                }
-                if (map.getLayer('3d-buildings')) { // Hide the base map buildings too
-                    map.setLayoutProperty('3d-buildings', 'visibility', 'none');
-                }
-
-                // 2. Reveal the new 2D Solution Layer
-                if (map.getLayer('resilience-fill')) {
-                    map.setLayoutProperty('resilience-fill', 'visibility', 'visible');
-                }
-
-                // 3. Transition to the 2D, overhead "Paper Map" view
-                map.flyTo({
-                    center: [-73.95, 40.75], 
-                    pitch: 0,             // Crucial: Returns to 2D
-                    bearing: 0,           // Removes rotation
-                    zoom: 11,
-                    duration: 3000
-                });
-                
-                // Optional: Switch to a light map style for the "paper map" effect
-                // map.setStyle('mapbox://styles/mapbox/light-v11'); 
-            } else if (response.element.id === 'scroll-14-secondary-intervention-step') {
-                console.log('Entering Scroll 11: Secondary Intervention - Residential Bivariate Analysis');
-                
-                // 1. Hide ALL 3D and other layers to focus on bivariate
-                if (map.getLayer('cvi-3d-extrusion')) {
-                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
-                }
-                if (map.getLayer('intervention-3d-extrusion')) {
-                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
-                }
-                if (map.getLayer('3d-buildings')) {
-                    map.setLayoutProperty('3d-buildings', 'visibility', 'none');
-                }
-                if (map.getLayer('resilience-fill')) {
-                    map.setLayoutProperty('resilience-fill', 'visibility', 'none');
-                }
-                
-                // 2. Reveal the bivariate layer
-                if (map.getLayer('resilience-bivariate-fill')) {
-                    map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'visible');
-                }
-                
-                // 3. Fly to South Bronx residential areas for detailed analysis
-                map.flyTo({
-                    center: [-73.88, 40.85],
-                    pitch: 0,             // 2D view for bivariate analysis
-                    bearing: 0,           // North-up orientation
-                    zoom: 12,
-                    duration: 2000
-                }); 
-            } else if (response.element.id === 'scroll-15-trivariate-solutions') {
-                // Hide all previous layers
-                if (map.getLayer('asthma-hex-fill')) {
-                    map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
-                }
-                if (map.getLayer('cvi-3d-extrusion')) {
-                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
-                }
-                if (map.getLayer('intervention-3d-extrusion')) {
-                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
-                }
-                if (map.getLayer('resilience-fill')) {
-                    map.setLayoutProperty('resilience-fill', 'visibility', 'none');
-                }
-                if (map.getLayer('resilience-bivariate-fill')) {
-                    map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'none');
-                }
-                if (map.getLayer('resilience-trivariate-fill')) {
-                    map.setLayoutProperty('resilience-trivariate-fill', 'visibility', 'none');
-                }
-                if (map.getLayer('city-type-fill')) {
-                    map.setLayoutProperty('city-type-fill', 'visibility', 'none');
-                }
-
-                // Fade residential and park layers for context
-                if (map.getLayer('residential-fill')) {
-                    map.setPaintProperty('residential-fill', 'fill-opacity', 0.3);
-                }
-                if (map.getLayer('park-fill')) {
-                    map.setPaintProperty('park-fill', 'fill-opacity', 0.3);
-                }
-
-                // Initialize vanilla JavaScript heatmap
-                const container = document.getElementById('trivariate-heatmap');
-                if (container && !container.hasChildNodes()) {
-                    const heatmap = window.createTrivariateHeatmap();
-                    container.appendChild(heatmap);
-                }
-            } else if (response.element.id === 'scroll-16-city-type-step') {
-                console.log('Entering Scroll 15: City Type Analysis');
-                
-                // Hide ALL layers except city type
-                if (map.getLayer('cvi-3d-extrusion')) {
-                    map.setLayoutProperty('cvi-3d-extrusion', 'visibility', 'none');
-                }
-                if (map.getLayer('intervention-3d-extrusion')) {
-                    map.setLayoutProperty('intervention-3d-extrusion', 'visibility', 'none');
-                }
-                if (map.getLayer('resilience-fill')) {
-                    map.setLayoutProperty('resilience-fill', 'visibility', 'none');
-                }
-                if (map.getLayer('resilience-bivariate-fill')) {
-                    map.setLayoutProperty('resilience-bivariate-fill', 'visibility', 'none');
-                }
-                if (map.getLayer('resilience-trivariate-fill')) {
-                    map.setLayoutProperty('resilience-trivariate-fill', 'visibility', 'none');
-                }
-                if (map.getLayer('resilience-max-priority-fill')) {
-                    map.setLayoutProperty('resilience-max-priority-fill', 'visibility', 'none');
-                }
-                if (map.getLayer('3d-buildings')) {
-                    map.setLayoutProperty('3d-buildings', 'visibility', 'none');
-                }
-                if (map.getLayer('residential-layer')) {
-                    map.setLayoutProperty('residential-layer', 'visibility', 'visible');
-                    map.setPaintProperty('residential-layer', 'fill-opacity', 0.1);
-                }
-                if (map.getLayer('residential-diagonal-layer')) {
-                    map.setLayoutProperty('residential-diagonal-layer', 'visibility', 'visible');
-                    map.setPaintProperty('residential-diagonal-layer', 'fill-opacity', 0.6);
-                }
-                if (map.getLayer('residential-stroke-layer')) {
-                    map.setLayoutProperty('residential-stroke-layer', 'visibility', 'none');
-                }
-                if (map.getLayer('park-lots-layer')) {
-                    map.setLayoutProperty('park-lots-layer', 'visibility', 'none');
-                }
-                if (map.getLayer('vulnerable-facilities-layer')) {
-                    map.setLayoutProperty('vulnerable-facilities-layer', 'visibility', 'none');
-                }
-                if (map.getLayer('asthma-index-layer')) {
-                    map.setLayoutProperty('asthma-index-layer', 'visibility', 'none');
-                }
-                if (map.getLayer('asthma-hex-fill')) {
-                    map.setLayoutProperty('asthma-hex-fill', 'visibility', 'none');
-                }
-                if (map.getLayer('freight-routes-layer')) {
-                    map.setLayoutProperty('freight-routes-layer', 'visibility', 'none');
-                }
-                if (map.getLayer('freight-zones-layer')) {
-                    map.setLayoutProperty('freight-zones-layer', 'visibility', 'none');
-                }
-                if (map.getLayer('traffic-hotspots-layer')) {
-                    map.setLayoutProperty('traffic-hotspots-layer', 'visibility', 'none');
-                }
-                if (map.getLayer('junction-hotspots-layer')) {
-                    map.setLayoutProperty('junction-hotspots-layer', 'visibility', 'none');
-                }
-
-                // Show ONLY City Type layer
-                if (map.getLayer('city-type-fill')) {
-                    map.setLayoutProperty('city-type-fill', 'visibility', 'visible');
-                }
-
-                // Fly to same area as step 14 for city type overview
-                map.flyTo({
-                    center: [-73.95, 40.80], // Same center as step 14
-                    pitch: 0,             // 2D view
-                    bearing: 0,           // North-up orientation
-                    zoom: 12,             // Same zoom as step 14
-                    duration: 2000
-                });
-            } else if (response.element.id === 'step-7') {
+            // Fly to same area as step 14 for city type overview
+            map.flyTo({
+                center: [-73.95, 40.80], // Same center as step 14
+                pitch: 0,             // 2D view
+                bearing: 0,           // North-up orientation
+                zoom: 12,             // Same zoom as step 14
+                duration: 2000
+            });
+        } else if (response.element.id === 'step-7') {
                 // CVI 3D Extrusion step - show CVI 3D layer prominently with 3D perspective
                 console.log('Showing CVI 3D extrusion layer');
                 if (map.getLayer('cvi-3d-extrusion')) {
@@ -1605,60 +1700,68 @@ function initScrollytelling() {
             
             // Update map state
             updateMap(stepDataIndex);
-        }
-
-        const scroller = scrollama();
-        
-        scroller
-            .setup({
-                step: '.step',
-                offset: 0.5,
-                progress: false,
-                debug: true, // Enable debug for now
-                once: false
-            })
-            .onStepEnter(handleStepEnter)
-            .onStepExit(response => {
-                console.log('Exiting step:', response.index);
-                
-                // Hide residential-diagonal-layer when exiting scroll 16 (step 15)
-                if (response.index === 15) {
-                    if (map.getLayer('residential-diagonal-layer')) {
-                        map.setLayoutProperty('residential-diagonal-layer', 'visibility', 'none');
-                    }
+        })
+        .onStepExit(response => {
+            console.log('Exiting step:', response.index);
+            
+            // Hide residential-diagonal-layer when exiting scroll 16 (step 15)
+            if (response.index === 15) {
+                if (map.getLayer('residential-diagonal-layer')) {
+                    map.setLayoutProperty('residential-diagonal-layer', 'visibility', 'none');
                 }
-            });
+            }
+        });
 
         // Handle window resize
         function handleResize() {
             console.log('Handling resize...');
-            scroller.resize();
+            try {
+                if (scroller && typeof scroller.resize === 'function') {
+                    scroller.resize();
+                }
+            } catch (resizeError) {
+                console.warn('Error resizing scrollama:', resizeError);
+            }
         }
 
-        // Add resize event listener
+        // Add resize event listener with error handling
         window.addEventListener('resize', handleResize);
         
         // Set initial state
         console.log('Setting initial state...');
-        updateMap('0');
-        const firstStep = document.querySelector('.step');
-        if (firstStep) {
-            firstStep.classList.add('is-active');
+        try {
+            updateMap('0');
+            const firstStep = document.querySelector('.step');
+            if (firstStep) {
+                firstStep.classList.add('is-active');
+            }
+        } catch (initError) {
+            console.error('Error setting initial state:', initError);
         }
         
         // Force resize to ensure proper calculation
         setTimeout(() => {
-            scroller.resize();
-            console.log('Scrollama initialized successfully');
-            
-            
-            
+            try {
+                if (scroller && typeof scroller.resize === 'function') {
+                    scroller.resize();
+                    console.log('Scrollama initialized successfully');
+                }
+            } catch (resizeError) {
+                console.warn('Error in initial resize:', resizeError);
+            }
         }, 100);
-        
     } catch (error) {
         console.error('Error initializing Scrollama:', error);
     }
 }
+
+// Call the initialization function after map is loaded
+map.on('load', () => {
+    // Wait a bit more for all layers to be ready
+    setTimeout(() => {
+        initializeScrollama();
+    }, 1000);
+});
 
 // Update map based on current step
 function updateMap(stepIndex) {
@@ -1670,17 +1773,44 @@ function updateMap(stepIndex) {
 
     console.log('Updating to step:', stepIndex, stepData);
 
-    // Fly to new camera position, prioritizing pitch and bearing from stepData
-    map.flyTo({
-        center: stepData.center,
-        zoom: stepData.zoom,
-        // CRITICAL: Checks for custom pitch/bearing in the data
-        pitch: stepData.pitch !== undefined ? stepData.pitch : 0, 
-        bearing: stepData.bearing !== undefined ? stepData.bearing : 0,
-        speed: 1.2,
-        curve: 1.42,
-        essential: true
-    });
+    // Validate zoom level
+    const zoom = stepData.zoom;
+    if (typeof zoom !== 'number' || zoom < 0 || zoom > 20) {
+        console.warn('Invalid zoom level for step', stepIndex, ':', zoom, 'using default');
+        stepData.zoom = 10; // Default fallback
+    }
+
+    // Validate center coordinates
+    if (!stepData.center || !Array.isArray(stepData.center) || stepData.center.length !== 2) {
+        console.warn('Invalid center coordinates for step', stepIndex, ':', stepData.center, 'using default');
+        stepData.center = [-74.0060, 40.7128]; // NYC default
+    }
+
+    // Fly to new camera position with error handling
+    try {
+        map.flyTo({
+            center: stepData.center,
+            zoom: stepData.zoom,
+            pitch: stepData.pitch !== undefined ? stepData.pitch : 0, 
+            bearing: stepData.bearing !== undefined ? stepData.bearing : 0,
+            speed: 1.2,
+            curve: 1.42,
+            essential: true
+        });
+    } catch (error) {
+        console.error('Error flying to step', stepIndex, ':', error);
+        // Fallback to jumpTo if flyTo fails
+        try {
+            map.jumpTo({
+                center: stepData.center,
+                zoom: stepData.zoom,
+                pitch: stepData.pitch !== undefined ? stepData.pitch : 0,
+                bearing: stepData.bearing !== undefined ? stepData.bearing : 0
+            });
+        } catch (jumpError) {
+            console.error('Error jumping to step', stepIndex, ':', jumpError);
+        }
+    }
 
     // Explicit layer visibility control for imp-density-layer
     if (stepIndex == 8) {

@@ -1177,7 +1177,7 @@ const storySteps = {
             ['traffic-hotspots-layer', 'visible', 0.5], // Traffic hotspots visible for EV charging analysis
             ['junction-hotspots-layer', 'visible', 0.5], // Junction hotspots visible for EV charging analysis
             ['vulnerable-facilities-layer', 'visible', 0.8], // Facilities visible for EV proximity analysis
-            ['residential-layer', 'none', 0], // Residential areas visible for EV infrastructure planning
+            ['residential-layer', 'visible', 0.3], // Residential areas visible for EV infrastructure planning
             ['E-designation', 'visible', 1.0], // E-designation polygons visible
             ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
         ]
@@ -1201,7 +1201,45 @@ const storySteps = {
             ['imp-density-layer', 'visible', 0.9] // Impervious density prominent
         ]
     },
-    9: { // CVI Layer (Starting point - flat 2D)
+    9: { // Environmental Impact Assessment
+        center: [-73.88, 40.85], // Stay in Bronx
+        zoom: 12.5,
+        layers: [
+            ['park-lots-layer', 'visible', 0.8], // Parks visible
+            ['asthma-index-layer', 'visible', 0.5], // Show health data
+            ['asthma-hex-fill', 'none', 0],
+            ['freight-routes-layer', 'visible', 0.3], // Freight as background
+            ['freight-zones-layer', 'none', 0],
+            ['traffic-hotspots-layer', 'none', 0], // Hide traffic layers
+            ['junction-hotspots-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'visible', 0.7], // Show facilities
+            ['residential-layer', 'none', 0], // Hide residential
+            ['E-designation', 'none', 0], // Hide E-designation
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D hidden
+            ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
+            ['imp-density-layer', 'none', 0] // Hide impervious density
+        ]
+    },
+    10: { // Sustainability Solutions Planning
+        center: [-73.88, 40.85], // Stay in Bronx
+        zoom: 12.5,
+        layers: [
+            ['park-lots-layer', 'visible', 1.0], // Parks prominent
+            ['asthma-index-layer', 'visible', 0.3], // Health data faded
+            ['asthma-hex-fill', 'none', 0],
+            ['freight-routes-layer', 'none', 0], // Hide freight
+            ['freight-zones-layer', 'none', 0],
+            ['traffic-hotspots-layer', 'none', 0], // Hide traffic layers
+            ['junction-hotspots-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'visible', 0.5], // Show facilities
+            ['residential-layer', 'visible', 0.4], // Show residential areas
+            ['E-designation', 'none', 0], // Hide E-designation
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D hidden
+            ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
+            ['imp-density-layer', 'none', 0] // Hide impervious density
+        ]
+    },
+    11: { // CVI Layer (Starting point - flat 2D)
         center: [-73.95, 40.85], 
         zoom: 11,
         // No pitch or bearing defined (or set to 0), so the global function uses 0/0.
@@ -1219,9 +1257,9 @@ const storySteps = {
             ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
         ]
     },
-    10: { // Intervention (Flat 2D Introduction - same as scroll 9)
-        center: [-73.95, 40.85], // Same center as scroll 7
-        zoom: 11,                // Same zoom as scroll 7
+    12: { // Intervention (Flat 2D Introduction - same as scroll 9)
+        center: [-73.95, 40.85], // Same center as CVI
+        zoom: 11,
         // No pitch or bearing defined (flat 2D view, same as scroll 7)
         layers: [
             ['park-lots-layer', 'visible', 0.3], // Parks faded (same as scroll 7)
@@ -1232,34 +1270,36 @@ const storySteps = {
             ['traffic-hotspots-layer', 'none', 0],
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'visible', 0.4], // Facilities visible but faded
-            ['residential-layer', 'visible', 0.1], // Residential very faded with solid fill
+            ['residential-layer', 'visible', 0.3], // Residential visible
+            ['E-designation', 'none', 0], // Hide E-designation
             ['cvi-3d-extrusion', 'visible', 0.3], // CVI problem areas visible
-            ['intervention-3d-extrusion', 'visible', 1.0], // Intervention zones prominent
+            ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
+            ['imp-density-layer', 'none', 0], // Hide impervious density
+            ['intervention-3d-extrusion', 'visible', 1.0] // Intervention zones prominent
+        ]
+    },
+    13: { // Resilience Solutions - 3D Intervention View (same perspective as scroll 8)
+        center: [-73.95, 40.85], // Same center as CVI
+        zoom: 11,
+        pitch: 45,
+        bearing: 0,
+        layers: [
+            ['park-lots-layer', 'visible', 0.2], // Parks very faded
+            ['asthma-index-layer', 'none', 0], // Hide other layers
+            ['asthma-hex-fill', 'none', 0],
+            ['freight-routes-layer', 'visible', 0.1], // Freight barely visible
+            ['freight-zones-layer', 'none', 0],
+            ['traffic-hotspots-layer', 'none', 0],
+            ['junction-hotspots-layer', 'none', 0],
+            ['vulnerable-facilities-layer', 'visible', 0.3], // Facilities faded
+            ['residential-layer', 'visible', 0.1], // Residential very faded with solid fill
+            ['cvi-3d-extrusion', 'visible', 0.8], // CVI problem areas visible
+            ['intervention-3d-extrusion', 'visible', 0.8], // Intervention zones visible
+            ['resilience-fill', 'none', 0], // Resilience solutions visible in 3D
             ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
         ]
     },
-    11: { // Resilience Solutions - 3D Intervention View (same perspective as scroll 8)
-            center: [-73.9, 40.85], // Same center as intervention step
-            zoom: 12,
-            pitch: 50,         // Same 3D perspective as scroll 8
-            bearing: -30,      // Same bearing as scroll 8
-            layers: [
-                ['park-lots-layer', 'visible', 0.2], // Parks very faded
-                ['asthma-index-layer', 'none', 0], // Hide other layers
-                ['asthma-hex-fill', 'none', 0],
-                ['freight-routes-layer', 'visible', 0.1], // Freight barely visible
-                ['freight-zones-layer', 'none', 0],
-                ['traffic-hotspots-layer', 'none', 0],
-                ['junction-hotspots-layer', 'none', 0],
-                ['vulnerable-facilities-layer', 'visible', 0.3], // Facilities faded
-                ['residential-layer', 'visible', 0.1], // Residential very faded with solid fill
-                ['cvi-3d-extrusion', 'none', 0], // CVI problem areas visible
-                ['intervention-3d-extrusion', 'visible', 0.8], // Intervention zones visible
-                ['resilience-fill', 'none', 0], // Resilience solutions visible in 3D
-            ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
-            ]
-        },
-        12: { // Resilience Solutions - Final 2D canopy gain areas
+    14: { // Resilience Solutions - Final 2D canopy gain areas
         center: [-73.95, 40.78], // Same center as intervention step
         zoom: 10.5,
         pitch: 0, // Return to 2D view
@@ -1277,10 +1317,11 @@ const storySteps = {
             ['cvi-3d-extrusion', 'none', 0], // Hide CVI 3D
             ['intervention-3d-extrusion', 'none', 0], // Hide intervention 3D
             ['resilience-fill', 'visible', 0.5], // Show resilience solutions with reduced opacity
-            ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
+            ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
+            ['imp-density-layer', 'none', 0] // Hide impervious density
         ]
     },
-    13: { // Secondary Intervention - Residential Bivariate Analysis
+    15: { // Secondary Intervention - Residential Bivariate Analysis
         center: [-73.95, 40.78], // Same center as scroll 10
         zoom: 10.5, // Same zoom as scroll 10
         pitch: 0, // 2D view for bivariate analysis
@@ -1298,10 +1339,11 @@ const storySteps = {
             ['cvi-3d-extrusion', 'none', 0],
             ['intervention-3d-extrusion', 'none', 0],
             ['resilience-fill', 'visible', 0.15], // Show resilience solutions as faded background
-            ['resilience-bivariate-fill', 'visible', 0.5] // Show bivariate analysis prominently
+            ['resilience-bivariate-fill', 'visible', 0.5], // Show bivariate analysis prominently
+            ['imp-density-layer', 'none', 0] // Hide impervious density
         ]
     },
-    14: { // Secondary Intervention - Residential Trivariate Analysis
+    16: { // Secondary Intervention - Residential Trivariate Analysis
         center: [-73.95, 40.80], // Center on analysis area
         zoom: 12,
         pitch: 0,          // Return to 2D
@@ -1314,6 +1356,7 @@ const storySteps = {
             ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
             ['3d-buildings', 'none', 0], // Hide 3D buildings layer
             ['city-type-fill', 'none', 0], // Hide city type layer
+            ['imp-density-layer', 'none', 0], // Hide impervious density
 
             // Show the new Trivariate Residential layer prominently
             ['resilience-trivariate-fill', 'visible', 1.0], // Opacity is driven by data
@@ -1324,7 +1367,7 @@ const storySteps = {
             ['park-lots-layer', 'visible', 0.5] // Show park context
         ]
     },
-    15: { // City Type Analysis
+    17: { // City Type Analysis
         center: [-73.95, 40.80], // Same center as step 14
         zoom: 12,               // Same zoom as step 14
         pitch: 0,          // 2D view
@@ -1349,6 +1392,7 @@ const storySteps = {
             ['freight-zones-layer', 'none', 0],
             ['traffic-hotspots-layer', 'none', 0],
             ['junction-hotspots-layer', 'none', 0],
+            ['imp-density-layer', 'none', 0], // Hide impervious density
 
             // Only show City Type layer
             ['city-type-fill', 'visible', 1.0]

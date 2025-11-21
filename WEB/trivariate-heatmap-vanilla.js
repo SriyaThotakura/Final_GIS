@@ -234,11 +234,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Show/hide heatmap based on scroll position
-  const scroll15Step = document.getElementById('scroll-15-trivariate-solutions');
+  const scroll16Step = document.getElementById('scroll-16-trivariate-solutions');
   const heatmapContainer = document.getElementById('trivariate-heatmap-left');
   
-  // Use Intersection Observer to detect when scroll 15 is active
-  if (scroll15Step && heatmapContainer) {
+  // Use Intersection Observer to detect when scroll 16 is active
+  if (scroll16Step && heatmapContainer) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
       threshold: 0.5 // Show when 50% of the element is visible
     });
     
-    observer.observe(scroll15Step);
+    observer.observe(scroll16Step);
   }
 });
 

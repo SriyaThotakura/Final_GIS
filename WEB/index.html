@@ -189,10 +189,10 @@
                         <div class="legend-color" style="background-color: #FFFF00; width: 40px; height: 3px; margin-top: 8px; opacity: 1.0;"></div>
                         <div class="legend-label">E-Designation Areas</div>
                     </div>
+                    <div class="legend-item">
                         <div class="legend-color" style="background-color: #00FF00; border: 1px solid #fff; width: 20px; height: 20px; opacity: 0.8;"></div>
                         <div class="legend-label">Vulnerable Facilities</div>
                     </div>
-                    <div class="legend-item">
                 </div>
             </section>
 
@@ -236,6 +236,8 @@
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: #2C3E50; width: 20px; height: 20px; opacity: 0.9;"></div>
                         <div class="legend-label">High Density (75-100%)</div>
+                    </div>
+                    <div class="legend-item">
                         <div class="legend-color" style="background-color: #1A252F; width: 20px; height: 20px; opacity: 0.9;"></div>
                         <div class="legend-label">Very High Density (>100%)</div>
                     </div>
@@ -253,42 +255,48 @@
                     <p><strong>Analysis:</strong> Comprehensive evaluation of environmental factors affecting urban sustainability.</p>
                     <p><strong>Description:</strong> This assessment examines multiple environmental indicators to identify areas requiring intervention and sustainable development strategies.</p>
                 </div>
-                <div class="legend" id="legend-10">
-                    <h4>Environmental Impact Legend</h4>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #2E8B57;"></div>
-                        <div class="legend-label">Low Impact Areas</div>
+                <div class="landcover-image-container">
+                    <div id="landcover-2010" class="landcover-layer">
+                        <img src="data/landcover_2010_nyc_3ft.png" alt="NYC Landcover 2010 Analysis" class="landcover-image">
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #FFD700;"></div>
-                        <div class="legend-label">Moderate Impact Areas</div>
+                    <div id="landcover-2021" class="landcover-layer">
+                        <img src="data/landcover_2021_nyc_6in.png" alt="NYC Landcover 2021 Analysis" class="landcover-image">
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #DC143C;"></div>
-                        <div class="legend-label">High Impact Areas</div>
+                    <div class="landcover-controls">
+                        <button id="toggle-landcover" class="toggle-btn">Auto Toggle: ON</button>
+                        <div class="year-indicator">
+                            <span id="current-year">2010</span>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <section class="step" id="scroll-10-sustainability-step" data-step="10">
                 <div class="narrative">
-                    <h2>Sustainability Solutions Planning</h2>
-                    <p><strong>Solution:</strong> Strategic planning for sustainable urban development and green infrastructure implementation.</p>
-                    <p><strong>Description:</strong> This section outlines comprehensive sustainability strategies to address environmental challenges and promote resilient communities.</p>
+                    <h2>Park Access & Vulnerability</h2>
+                    <p>Walk-time isochrones identify vulnerable areas lacking green space access.</p>
+                    <p>>5-Min (CVI-colored): Immediate access vulnerability (Green-Yellow-Red). 10-Min (Yellow): Good access<strong>15-Min (Blue): Max walkable access.</strong></p>
+                    <p>Analysis highlights intervention priority areas.</p>
                 </div>
                 <div class="legend" id="legend-11">
-                    <h4>Sustainability Solutions Legend</h4>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #228B22;"></div>
-                        <div class="legend-label">Green Infrastructure</div>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #4682B4;"></div>
-                        <div class="legend-label">Water Management</div>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #FF8C00;"></div>
-                        <div class="legend-label">Energy Solutions</div>
+                    <div class="legend-container">
+                        <h4 class="legend-title">Park Access: Walk Time</h4>
+                        <div class="legend-item">
+                            <span class="legend-color-box" style="background-color: #ff0000; opacity: 0.6;"></span>
+                            5 Min Walk
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color-box" style="background-color: #ffff00; opacity: 0.5;"></span>
+                            10 Min Walk
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color-box" style="background-color: #0000ff; opacity: 0.3;"></span>
+                            15 Min Walk
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color-box" style="background-color: #f0f0f0; border: 1px solid #ccc;"></span>
+                            > 15 Min Walk (Park Desert)
+                        </div>
                     </div>
                 </div>
             </section>
@@ -309,6 +317,7 @@
                         <div class="legend-scale-label">Low</div>
                         <div class="legend-scale-bar" style="background: linear-gradient(to right, #8B0000, #E10600);"></div>
                         <div class="legend-scale-label">High</div>
+                    </div>
                     <div class="legend-note">Height = Vulnerability Score</div>
                 </div>
             </section>

@@ -44,6 +44,76 @@ body {
     opacity: 1;
 }
 
+/* Landcover image container */
+.landcover-image-container {
+    width: 100%;
+    max-width: 1000px;
+    margin: 20px auto;
+    text-align: center;
+    position: relative;
+}
+
+.landcover-layer {
+    position: relative;
+    width: 100%;
+}
+
+.landcover-image {
+    width: 100%;
+    height: auto;
+    max-height: 750px;
+    object-fit: contain;
+    border: 2px solid #555;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+#landcover-2021 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.landcover-controls {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.toggle-btn {
+    background: #E10600;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.toggle-btn:hover {
+    background: #B80400;
+}
+
+.toggle-btn.paused {
+    background: #666;
+}
+
+.year-indicator {
+    background: rgba(0, 0, 0, 0.8);
+    color: #E10600;
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 16px;
+    border: 1px solid #E10600;
+}
+
 /* Content box */
 .narrative {
     max-width: 500px;

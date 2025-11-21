@@ -504,6 +504,22 @@ map.on('load', () => {
         data: 'data/residential.geojson'
     });
 
+    // 7. Add Isochrone Sources for Park Access Analysis
+    map.addSource('isochrone-5min-source', {
+        type: 'geojson',
+        data: 'data/5min_isochrone.geojson'
+    });
+
+    map.addSource('isochrone-10min-source', {
+        type: 'geojson',
+        data: 'data/10min_isochrone.geojson'
+    });
+
+    map.addSource('isochrone-15min-source', {
+        type: 'geojson',
+        data: 'data/15min_isochrone.geojson'
+    });
+
     map.addLayer({
         'id': 'residential-layer',
         'type': 'fill',
@@ -515,6 +531,101 @@ map.on('load', () => {
         },
         'layout': {
             'visibility': 'none'
+        }
+    }, 'traffic-hotspots-layer');
+
+    // 8. Add Isochrone Layers for Park Access Analysis (Desert Map Concept)
+    
+    // Add world polygon source for desert background
+    const worldPolygon = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            [-180, -90],
+                            [180, -90],
+                            [180, 90],
+                            [-180, 90],
+                            [-180, -90]
+                        ]
+                    ]
+                }
+            }
+        ]
+    };
+
+    map.addSource('desert-background-source', {
+        type: 'geojson',
+        data: worldPolygon
+    });
+
+    // Add desert background layer (red areas outside isochrones)
+    map.addLayer({
+        'id': 'desert-background-layer',
+        'type': 'fill',
+        'source': 'desert-background-source',
+        'paint': {
+            'fill-color': '#e74c3c', // Reddish color for desert
+            'fill-opacity': 0.5
+        },
+        'layout': {
+            'visibility': 'none' // Hidden until scroll 9
+        }
+    }, 'traffic-hotspots-layer');
+
+    // Add isochrone layers with proper stacking order for layered visualization
+    // 15-minute layer (blue) should be added first (bottom layer)
+    map.addLayer({
+        'id': 'isochrone-15min-layer',
+        'type': 'fill',
+        'source': 'isochrone-15min-source',
+        'paint': {
+            'fill-color': '#0000ff', // Blue for 15-minute access
+            'fill-opacity': 0.8, // Increased opacity for visibility
+            'fill-outline-color': '#0000cc'
+        },
+        'layout': {
+            'visibility': 'none' // Hidden until scroll 9
+        }
+    }, 'traffic-hotspots-layer');
+
+    // 10-minute layer (yellow) added second (middle layer)
+    map.addLayer({
+        'id': 'isochrone-10min-layer',
+        'type': 'fill',
+        'source': 'isochrone-10min-source',
+        'paint': {
+            'fill-color': '#ffff00', // Yellow for 10-minute access
+            'fill-opacity': 0.4, // Reduced opacity to let blue show through
+            'fill-outline-color': '#cccc00'
+        },
+        'layout': {
+            'visibility': 'none' // Hidden until scroll 9
+        }
+    }, 'traffic-hotspots-layer');
+
+    // 5-minute layer (data-driven CVI styling) added last (top layer)
+    map.addLayer({
+        'id': 'isochrone-5min-layer',
+        'type': 'fill',
+        'source': 'isochrone-5min-source',
+        'paint': {
+            'fill-color': [
+                'interpolate',
+                ['linear'],
+                ['get', 'CVI_mean_count'], // GET the CVI score from the GeoJSON data
+                0.0, '#00ff00',       // If score is 0.0, color it Green (Low Vulnerability)
+                0.5, '#ffff00',       // If score is 0.5, color it Yellow
+                1.0, '#ff0000'        // If score is 1.0, color it Red (High Vulnerability)
+            ],
+            'fill-opacity': 0.6
+        },
+        'layout': {
+            'visibility': 'none' // Hidden until scroll 9
         }
     }, 'traffic-hotspots-layer');
 
@@ -628,6 +739,11 @@ fetch('data/CVI_hex.geojson')
             'id': 'cvi-3d-extrusion',
             'type': 'fill-extrusion',
             'source': 'cvi-source',
+            'filter': [
+                '>', 
+                ['get', 'CVI_mean'], 
+                0.0
+            ], // Only show hexagons with CVI_mean > 0 (will have height)
             'paint': {
                 // A. EXTRUSION HEIGHT: Base the height on the CVI mean score
                 'fill-extrusion-height': [
@@ -1066,7 +1182,11 @@ const storySteps = {
             ['junction-hotspots-layer', 'visible', 0.8], // Idling Hotspots (Heatmap)
             ['vulnerable-facilities-layer', 'none', 0], // (hidden)
             ['residential-layer', 'none', 0], // Residential Areas (Hidden)
-            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D (Hidden)
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     1: { // Same as 0, serves as the explicit start step for Scroll 1
@@ -1082,7 +1202,11 @@ const storySteps = {
             ['junction-hotspots-layer', 'visible', 0.8],
             ['vulnerable-facilities-layer', 'none', 0],
             ['residential-layer', 'none', 0],
-            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D (Hidden)
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     2: { // Traffic Hotspots Focus - Show only traffic hotspots
@@ -1098,7 +1222,11 @@ const storySteps = {
             ['junction-hotspots-layer', 'visible', 1.0], // Junction Hotspots also visible
             ['vulnerable-facilities-layer', 'none', 0],
             ['residential-layer', 'none', 0],
-            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D (Hidden)
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     3: { // Scroll 1 Focus - Zoom to Bronx to show local problem
@@ -1114,7 +1242,11 @@ const storySteps = {
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'visible', 1.0],
             ['residential-layer', 'visible', 0.6], // Show residential areas with solid fill
-            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D (Hidden)
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     4: { // Freight Routes Only - Show only freight routes and zones
@@ -1130,7 +1262,11 @@ const storySteps = {
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'none', 0],
             ['residential-layer', 'none', 0],
-            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D (Hidden)
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     5: { // Freight Focus - Show freight zones, routes, and asthma hex
@@ -1146,7 +1282,11 @@ const storySteps = {
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'none', 0],
             ['residential-layer', 'none', 0],
-            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D (Hidden)
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     6: { // Health Burden Focus - Isolate Health Burden layers, fade Freight/Hotspots
@@ -1162,7 +1302,11 @@ const storySteps = {
             ['junction-hotspots-layer', 'none', 0],
             ['vulnerable-facilities-layer', 'visible', 0.6], // Facilities visible but faded
             ['residential-layer', 'none', 0],
-            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D (Hidden)
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     7: { // E-destination - Electric Vehicle Infrastructure Planning
@@ -1179,7 +1323,11 @@ const storySteps = {
             ['vulnerable-facilities-layer', 'visible', 0.8], // Facilities visible for EV proximity analysis
             ['residential-layer', 'visible', 0.3], // Residential areas visible for EV infrastructure planning
             ['E-designation', 'visible', 1.0], // E-designation polygons visible
-            ['cvi-3d-extrusion', 'none', 0] // CVI 3D (Hidden)
+            ['cvi-3d-extrusion', 'none', 0], // CVI 3D (Hidden)
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     8: { // Impervious Surface Density Analysis
@@ -1198,29 +1346,38 @@ const storySteps = {
             ['E-designation', 'none', 0], // Hide E-designation
             ['cvi-3d-extrusion', 'none', 0], // CVI 3D hidden
             ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
-            ['imp-density-layer', 'visible', 0.9] // Impervious density prominent
+            ['imp-density-layer', 'visible', 0.9], // Impervious density prominent
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
-    9: { // Environmental Impact Assessment
+    9: { // Environmental Impact Assessment - Landcover Image Only
         center: [-73.88, 40.85], // Stay in Bronx
         zoom: 12.5,
         layers: [
-            ['park-lots-layer', 'visible', 0.8], // Parks visible
-            ['asthma-index-layer', 'visible', 0.5], // Show health data
+            // Hide all layers - only show landcover image
+            ['park-lots-layer', 'none', 0],
+            ['asthma-index-layer', 'none', 0],
             ['asthma-hex-fill', 'none', 0],
-            ['freight-routes-layer', 'visible', 0.3], // Freight as background
+            ['freight-routes-layer', 'none', 0],
             ['freight-zones-layer', 'none', 0],
-            ['traffic-hotspots-layer', 'none', 0], // Hide traffic layers
+            ['traffic-hotspots-layer', 'none', 0],
             ['junction-hotspots-layer', 'none', 0],
-            ['vulnerable-facilities-layer', 'visible', 0.7], // Show facilities
-            ['residential-layer', 'none', 0], // Hide residential
-            ['E-designation', 'none', 0], // Hide E-designation
-            ['cvi-3d-extrusion', 'none', 0], // CVI 3D hidden
-            ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
-            ['imp-density-layer', 'none', 0] // Hide impervious density
+            ['vulnerable-facilities-layer', 'none', 0],
+            ['residential-layer', 'none', 0],
+            ['E-designation', 'none', 0],
+            ['cvi-3d-extrusion', 'none', 0],
+            ['resilience-bivariate-fill', 'none', 0],
+            ['imp-density-layer', 'none', 0],
+            ['desert-background-layer', 'none', 0],
+            ['isochrone-5min-layer', 'none', 0],
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
-    10: { // Sustainability Solutions Planning
+    10: { // Sustainability Solutions Planning - Layered Access Times
         center: [-73.88, 40.85], // Stay in Bronx
         zoom: 12.5,
         layers: [
@@ -1236,7 +1393,13 @@ const storySteps = {
             ['E-designation', 'none', 0], // Hide E-designation
             ['cvi-3d-extrusion', 'none', 0], // CVI 3D hidden
             ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
-            ['imp-density-layer', 'none', 0] // Hide impervious density
+            ['imp-density-layer', 'none', 0], // Hide impervious density
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            // Layered isochrone approach - all visible simultaneously
+            // 15min layer should be added first (bottom), then 10min, then 5min (top)
+            ['isochrone-15min-layer', 'visible', 0.8], // 15min blue (bottom layer, highest opacity)
+            ['isochrone-10min-layer', 'visible', 0.4], // 10min yellow (middle layer, medium opacity)
+            ['isochrone-5min-layer', 'visible', 0.6]  // 5min CVI-styled (top layer, data-driven colors)
         ]
     },
     11: { // CVI Layer (Starting point - flat 2D)
@@ -1254,7 +1417,11 @@ const storySteps = {
             ['vulnerable-facilities-layer', 'visible', 0.4], // Facilities visible but faded
             ['residential-layer', 'visible', 0.1], // Residential very faded with solid fill
             ['cvi-3d-extrusion', 'visible', 0.9], // CVI 3D prominent
-            ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
+            ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     12: { // Intervention (Flat 2D Introduction - same as scroll 9)
@@ -1275,7 +1442,11 @@ const storySteps = {
             ['cvi-3d-extrusion', 'visible', 0.3], // CVI problem areas visible
             ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
             ['imp-density-layer', 'none', 0], // Hide impervious density
-            ['intervention-3d-extrusion', 'visible', 1.0] // Intervention zones prominent
+            ['intervention-3d-extrusion', 'visible', 1.0], // Intervention zones prominent
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     13: { // Resilience Solutions - 3D Intervention View (same perspective as scroll 8)
@@ -1296,7 +1467,11 @@ const storySteps = {
             ['cvi-3d-extrusion', 'visible', 0.8], // CVI problem areas visible
             ['intervention-3d-extrusion', 'visible', 0.8], // Intervention zones visible
             ['resilience-fill', 'none', 0], // Resilience solutions visible in 3D
-            ['resilience-bivariate-fill', 'none', 0] // Hide bivariate layer
+            ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     14: { // Resilience Solutions - Final 2D canopy gain areas
@@ -1318,7 +1493,11 @@ const storySteps = {
             ['intervention-3d-extrusion', 'none', 0], // Hide intervention 3D
             ['resilience-fill', 'visible', 0.5], // Show resilience solutions with reduced opacity
             ['resilience-bivariate-fill', 'none', 0], // Hide bivariate layer
-            ['imp-density-layer', 'none', 0] // Hide impervious density
+            ['imp-density-layer', 'none', 0], // Hide impervious density
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     15: { // Secondary Intervention - Residential Bivariate Analysis
@@ -1340,7 +1519,11 @@ const storySteps = {
             ['intervention-3d-extrusion', 'none', 0],
             ['resilience-fill', 'visible', 0.15], // Show resilience solutions as faded background
             ['resilience-bivariate-fill', 'visible', 0.5], // Show bivariate analysis prominently
-            ['imp-density-layer', 'none', 0] // Hide impervious density
+            ['imp-density-layer', 'none', 0], // Hide impervious density
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     16: { // Secondary Intervention - Residential Trivariate Analysis
@@ -1364,7 +1547,11 @@ const storySteps = {
 
             // Optional context layers (e.g., roads, base map labels)
             ['residential-layer', 'visible', 0.2], // Fade residential context with solid fill
-            ['park-lots-layer', 'visible', 0.5] // Show park context
+            ['park-lots-layer', 'visible', 0.5], // Show park context
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0]
         ]
     },
     17: { // City Type Analysis
@@ -1393,6 +1580,10 @@ const storySteps = {
             ['traffic-hotspots-layer', 'none', 0],
             ['junction-hotspots-layer', 'none', 0],
             ['imp-density-layer', 'none', 0], // Hide impervious density
+            ['desert-background-layer', 'none', 0], // Hide desert background
+            ['isochrone-5min-layer', 'none', 0], // Hide isochrone layers
+            ['isochrone-10min-layer', 'none', 0],
+            ['isochrone-15min-layer', 'none', 0],
 
             // Only show City Type layer
             ['city-type-fill', 'visible', 1.0]
@@ -2049,3 +2240,122 @@ function updateMap(stepIndex) {
         }
     }
 }
+
+// Initialize Isochrone Slider Control
+document.addEventListener('DOMContentLoaded', () => {
+    const timeSlider = document.getElementById('time-slider');
+    const currentThresholdLabel = document.getElementById('current-threshold-label');
+
+    const thresholds = [
+        { label: '5 Min Walk', field: 'Access_5min_count' },
+        { label: '10 Min Walk', field: 'Access_10min_count' },
+        { label: '15 Min Walk', field: 'Access_15min_count' }
+    ];
+
+    if (timeSlider && currentThresholdLabel) {
+        timeSlider.addEventListener('input', (event) => {
+            const index = parseInt(event.target.value);
+            const { label } = thresholds[index];
+            currentThresholdLabel.textContent = label;
+            
+            // Update isochrone layer visibility based on slider position
+            if (map && map.getLayer('isochrone-5min-layer') && map.getLayer('isochrone-10min-layer') && map.getLayer('isochrone-15min-layer') && map.getLayer('desert-background-layer')) {
+                // Hide all isochrone layers first
+                map.setLayoutProperty('isochrone-5min-layer', 'visibility', 'none');
+                map.setLayoutProperty('isochrone-10min-layer', 'visibility', 'none');
+                map.setLayoutProperty('isochrone-15min-layer', 'visibility', 'none');
+                
+                // Special handling for 5-minute option: show only desert (no green isochrone)
+                if (index === 0) {
+                    // 5-minute option: show desert background only
+                    map.setLayoutProperty('desert-background-layer', 'visibility', 'visible');
+                    console.log(`Isochrone set to 5-minute: Showing only park deserts`);
+                } else {
+                    // 10-minute and 15-minute options: show desert + isochrone
+                    map.setLayoutProperty('desert-background-layer', 'visibility', 'visible');
+                    const selectedLayerId = `isochrone-${index === 1 ? '10min' : '15min'}-layer`;
+                    map.setLayoutProperty(selectedLayerId, 'visibility', 'visible');
+                    console.log(`Isochrone layer switched to: ${selectedLayerId} (${label})`);
+                }
+            }
+        });
+
+        // Set initial state (10-minute with desert + isochrone)
+        currentThresholdLabel.textContent = '10 Min Walk';
+    }
+});
+
+// Landcover Toggle Functionality
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('toggle-landcover');
+    const landcover2010 = document.getElementById('landcover-2010');
+    const landcover2021 = document.getElementById('landcover-2021');
+    const currentYearSpan = document.getElementById('current-year');
+    
+    let isAutoToggling = true;
+    let toggleInterval;
+    let isShowing2021 = false;
+    
+    function toggleLandcover() {
+        isShowing2021 = !isShowing2021;
+        
+        if (isShowing2021) {
+            landcover2021.style.opacity = '1';
+            currentYearSpan.textContent = '2021';
+        } else {
+            landcover2021.style.opacity = '0';
+            currentYearSpan.textContent = '2010';
+        }
+    }
+    
+    function startAutoToggle() {
+        toggleInterval = setInterval(toggleLandcover, 2000); // Toggle every 2 seconds
+        isAutoToggling = true;
+        toggleBtn.textContent = 'Auto Toggle: ON';
+        toggleBtn.classList.remove('paused');
+    }
+    
+    function stopAutoToggle() {
+        clearInterval(toggleInterval);
+        isAutoToggling = false;
+        toggleBtn.textContent = 'Auto Toggle: OFF';
+        toggleBtn.classList.add('paused');
+    }
+    
+    if (toggleBtn && landcover2010 && landcover2021 && currentYearSpan) {
+        // Start auto-toggle by default
+        startAutoToggle();
+        
+        // Add click handler to toggle button
+        toggleBtn.addEventListener('click', () => {
+            if (isAutoToggling) {
+                stopAutoToggle();
+            } else {
+                startAutoToggle();
+            }
+        });
+        
+        // Clean up when leaving the scroll step
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const step9 = document.getElementById('scroll-9-new-analysis-step');
+                    if (step9 && !step9.classList.contains('is-active')) {
+                        stopAutoToggle();
+                        // Reset to 2010 when leaving
+                        landcover2021.style.opacity = '0';
+                        currentYearSpan.textContent = '2010';
+                        isShowing2021 = false;
+                    } else if (step9 && step9.classList.contains('is-active')) {
+                        startAutoToggle();
+                    }
+                }
+            });
+        });
+        
+        const step9 = document.getElementById('scroll-9-new-analysis-step');
+        if (step9) {
+            observer.observe(step9, { attributes: true });
+        }
+    }
+});
